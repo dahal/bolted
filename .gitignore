@@ -2,5 +2,16 @@
 .DS_Store
 *.swp
 *.swo
+
+# .claude/ houses per-user tooling state (settings.local.json, agents, caches)
+# plus any local brainstorm material. None of it is committed.
 .claude/*
 
+# Go build artifacts
+/dist/
+*.test
+coverage.out
+coverage.html
+
+# vm-image build artifacts
+/vm-image/dist/
