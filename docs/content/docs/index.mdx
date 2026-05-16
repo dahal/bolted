@@ -1,0 +1,19 @@
+---
+title: Bolted
+description: A password-locked, encrypted Linux dev environment CLI for Mac and Windows.
+icon: Terminal
+---
+
+Bolted (alias `bolt`) gives you a password-locked, encrypted Linux dev environment that runs the same on Mac and Windows. Clone repos into it, run dev servers, hit them at `localhost:PORT` from your host browser — and when locked, the contents are encrypted at rest. Host-side processes (including malicious npm/cargo postinstall scripts) cannot read or tamper with your repos.
+
+## What you get
+
+- **One CLI, two OSes** — same UX on Mac (via Lima) and Windows (via WSL2).
+- **Encrypted at rest** — repo contents live in a LUKS-encrypted volume. Locked means locked.
+- **Multi-repo by default** — many repos in one Bolted instance, many dev containers running concurrently, port collisions remapped automatically.
+- **Passthrough commands** — `bolt git clone …`, `bolt gh auth login`, `bolt gcloud …`, `bolt kubectl …` just work. No bespoke wrappers around every tool.
+- **Toolchain layering** — minimal VM base + a shareable `bolted.yaml` profile + standard per-repo `devcontainer.json` for project-pinned languages.
+
+## Status
+
+Pre-release. This site documents what currently exists. In-progress design and implementation specs live alongside the code in the project repo.

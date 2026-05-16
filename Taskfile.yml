@@ -1,0 +1,60 @@
+version: '3'
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  install:
+    desc: Install dependencies for all projects
+    deps: [docs:install]
+
+  build:
+    desc: Build all projects
+    deps: [docs:build]
+
+  lint:
+    desc: Lint all projects
+    deps: [docs:lint]
+
+  check:
+    desc: Run type checks across all projects
+    deps: [docs:check]
+
+  docs:install:
+    desc: Install docs dependencies
+    dir: docs
+    cmds:
+      - bun install
+
+  docs:dev:
+    desc: Start docs dev server
+    dir: docs
+    cmds:
+      - bun run dev
+
+  docs:build:
+    desc: Build the docs site
+    dir: docs
+    cmds:
+      - bun run build
+
+  docs:start:
+    desc: Serve the built docs site
+    dir: docs
+    cmds:
+      - bun run start
+
+  docs:lint:
+    desc: Lint the docs project
+    dir: docs
+    cmds:
+      - bun run lint
+
+  docs:check:
+    desc: Type-check the docs project
+    dir: docs
+    cmds:
+      - bun run types:check
