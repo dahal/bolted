@@ -28,24 +28,53 @@ func Execute(name string, args []string) int {
 	return 0
 }
 
-// isPassthrough reports whether the first argument is a non-reserved command,
-// in which case spec 11's passthrough router takes over (a placeholder stub
-// in this spec).
+// isPassthrough reports whether the args should be handled by spec 11's
+// passthrough router instead of Cobra.
 //
-// Deliberately simple: we only look at args[0]. Cases where flags precede the
-// command (e.g. `bolt --log-level debug git clone …`) defer to Cobra and are
-// handled fully in spec 11 — implementing flag-value awareness here would
-// duplicate Cobra's parser.
+// Routing rules:
+//   - Empty args → Cobra (prints help).
+//   - A leading `--` forces passthrough regardless of what follows
+//     (AC 4: `bolt -- ls /etc` runs system ls, NOT the reserved `bolt ls`).
+//   - Passthrough flags handled at this layer — `--cwd <path>` and
+//     `--cwd=<path>` — are skipped over before deciding. This means
+//     `bolt --cwd foo git status` correctly routes to passthrough.
+//   - Any other leading flag (e.g. `--log-level`, `-h`) defers to Cobra
+//     so Bolted's own global flags keep working. Spec 11 does NOT
+//     try to replicate Cobra's full flag parser here.
+//   - Otherwise the first positional arg decides: reserved → Cobra,
+//     anything else → passthrough.
 func isPassthrough(args []string) bool {
 	if len(args) == 0 {
 		return false
 	}
-	first := args[0]
-	if first == "" || first == "--" {
-		return false
+	i := 0
+	for i < len(args) {
+		a := args[i]
+		if a == "" {
+			return false
+		}
+		if a == "--" {
+			// Force passthrough; the router strips the `--` and
+			// treats the rest as a literal command.
+			return true
+		}
+		if a == "--cwd" {
+			// Consume the value too. If the value is missing we
+			// still route to passthrough so the router can emit a
+			// consistent error message.
+			i += 2
+			continue
+		}
+		if len(a) > len("--cwd=") && a[:len("--cwd=")] == "--cwd=" {
+			i++
+			continue
+		}
+		if a[0] == '-' {
+			return false
+		}
+		return !isReserved(a)
 	}
-	if first[0] == '-' {
-		return false
-	}
-	return !isReserved(first)
+	// All args were passthrough flags with no command — let the router
+	// surface the "no command given" diagnostic.
+	return true
 }

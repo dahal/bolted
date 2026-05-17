@@ -127,7 +127,9 @@ func TestIsPassthrough(t *testing.T) {
 		// Flag-before-command defers to Cobra (full handling lands in spec 11).
 		{"flag-before-reserved defers to Cobra", []string{"--log-level", "debug", "init"}, false},
 		{"flag-before-unknown defers to Cobra", []string{"-v", "git"}, false},
-		{"double-dash defers to Cobra", []string{"--", "ls"}, false},
+		// Spec 11 AC 4: `bolt -- ls /etc` MUST passthrough (not invoke
+		// the reserved `ls` subcommand).
+		{"double-dash forces passthrough", []string{"--", "ls"}, true},
 	}
 	for _, c := range cases {
 		if got := isPassthrough(c.args); got != c.want {
