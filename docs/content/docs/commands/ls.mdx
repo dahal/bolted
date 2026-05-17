@@ -1,0 +1,67 @@
+---
+title: bolt ls
+description: List repos with their container status and on-disk size.
+---
+
+Lists every directory under `/bolted/repos/`, joining each entry with the recorded container state and a live `podman ps` probe.
+
+## Synopsis
+
+```sh
+bolt ls [--json]
+```
+
+## Flags
+
+| Flag | Description |
+|---|---|
+| `--json` | Emit machine-readable JSON instead of a table |
+
+## Examples
+
+Human-readable table:
+
+```sh
+bolt ls
+```
+
+```
+NAME  STATUS   SIZE
+api   running  420M
+docs  stopped  60M
+web   running  1.2G
+```
+
+JSON for scripts:
+
+```sh
+bolt ls --json
+```
+
+```json
+[
+  { "name": "api",  "status": "running", "size": "420M" },
+  { "name": "docs", "status": "stopped", "size": "60M" },
+  { "name": "web",  "status": "running", "size": "1.2G" }
+]
+```
+
+## What happens
+
+1. Verify Bolted is unlocked.
+2. `ls /bolted/repos` to enumerate repos.
+3. Read `containers.json` and run `podman ps` to determine per-repo running state.
+4. Run `du -sh` per repo for the size column. Unreadable repos show `—`.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | Generic error |
+| `2` | Bolted not initialised, VM not running, or volume locked |
+
+## See also
+
+- [`bolt dev`](/docs/commands/dev)
+- [`bolt status`](/docs/commands/status) — VM-level summary

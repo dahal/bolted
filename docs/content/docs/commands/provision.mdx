@@ -1,0 +1,72 @@
+---
+title: bolt provision
+description: Apply ~/.bolted/bolted.yaml — install features, packages, gitconfig, dotfiles.
+---
+
+Reads `~/.bolted/bolted.yaml`, diffs against the cached installed state, and installs missing features/packages while applying gitconfig and dotfiles. Idempotent — safe to re-run.
+
+See [Toolchain layers](/docs/concepts/toolchain-layers) for what belongs in `bolted.yaml`.
+
+## Synopsis
+
+```sh
+bolt provision [--check] [--from <url-or-path>]
+```
+
+## Flags
+
+| Flag | Description |
+|---|---|
+| `--check` | Check for drift between `bolted.yaml` and the installed state. Exits non-zero on drift, makes no changes |
+| `--from <url-or-path>` | Fetch `bolted.yaml` from a URL (`https://...`) or local path, write it to `~/.bolted/bolted.yaml`, then provision |
+
+## Examples
+
+Apply the local profile:
+
+```sh
+bolt provision
+```
+
+CI / shell-prompt drift check:
+
+```sh
+bolt provision --check
+```
+
+Bootstrap from a team-published profile:
+
+```sh
+bolt provision --from https://github.com/myteam/dev-setup/raw/main/bolted.yaml
+```
+
+## What happens
+
+1. Verify Bolted is unlocked.
+2. If `--from` is given, fetch it and write to `~/.bolted/bolted.yaml`.
+3. Load the YAML and the install cache (`~/.bolted/state/`).
+4. `--check`: print "in sync" or "drift: ..." and exit. No changes.
+5. Otherwise: install missing features, remove dropped ones, apply packages / gitconfig / shell / dotfiles, save the updated cache, print a summary.
+
+Output summary:
+
+```
+features:  +2 -0
+packages:  +3 -0
+gitconfig: 2 keys
+dotfiles:  4 changed (0 overwritten)
+elapsed:   12.3s
+```
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | In sync (or apply succeeded) |
+| `1` | Generic error (no bolted.yaml, fetch failed, apply failed, drift detected with `--check`) |
+| `2` | Bolted not initialised, VM not running, or volume locked |
+
+## See also
+
+- [Toolchain layers](/docs/concepts/toolchain-layers)
+- [`bolt init`](/docs/commands/init)

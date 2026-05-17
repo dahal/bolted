@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -13,6 +14,7 @@ import (
 	"github.com/dahal/bolted/internal/backend/factory"
 	"github.com/dahal/bolted/internal/config"
 	"github.com/dahal/bolted/internal/hostinfo"
+	"github.com/dahal/bolted/internal/profiles"
 	"github.com/dahal/bolted/internal/volume"
 )
 
@@ -53,6 +55,13 @@ var (
 	saveConfigFn     = func(path string, c *config.Config) error { return c.Save(path) }
 	boltedDirFn   = config.BoltedDir
 	newPrompterFn    = func() passwordPrompter { return newTTYPrompter() }
+
+	// profilesGetFn / profileWriteFileFn are the spec-16 init wiring.
+	// Tests substitute them to drive the --profile branches without
+	// touching the real embedded fs or the disk.
+	profilesGetFn       = profiles.Get
+	profilesNamesFn     = profiles.Names
+	profileWriteFileFn  = os.WriteFile
 )
 
 // Paths inside the VM. Kept const so init/unlock/lock all agree.
@@ -123,7 +132,7 @@ func newInitCmd() *cobra.Command {
 			return runInit(cmd.Context(), cmd.OutOrStdout(), cmd.ErrOrStderr(), *opts)
 		},
 	}
-	cmd.Flags().StringVar(&opts.profile, "profile", "", "Starter profile to apply (spec 16 — not yet implemented)")
+	cmd.Flags().StringVar(&opts.profile, "profile", "", "Starter profile to drop into ~/.bolted/bolted.yaml (see `bolt profiles`)")
 	cmd.Flags().StringVar(&opts.fromURL, "from", "", "Fetch bolted.yaml from URL or path (spec 15 — not yet implemented)")
 	cmd.Flags().BoolVar(&opts.passwordStdin, "password-stdin", false, "Read the new password from stdin instead of prompting")
 	cmd.Flags().BoolVar(&opts.insecurePassword, "insecure-password", false, "Skip the password-strength warning (spec 17)")
@@ -153,16 +162,40 @@ func runInit(ctx context.Context, _ io.Writer, stderr io.Writer, opts initOption
 	// check. For now we accept everything; flag is reserved.
 	_ = opts.insecurePassword
 
-	// Future: spec 15/16 will fold `opts.profile` / `opts.fromURL` into
-	// the provisioning step. For now the flags are accepted but ignored
-	// with a stderr notice.
-	if opts.profile != "" || opts.fromURL != "" {
-		fmt.Fprintln(stderr, "note: --profile and --from are accepted but not yet applied (see specs 15, 16)")
+	// --profile: validate up-front so a typo fails before we spin up
+	// the VM. The actual write happens after saveConfig (which creates
+	// the BoltedDir on disk via os.WriteFile against configPath()).
+	var profileYAML []byte
+	if opts.profile != "" {
+		data, err := profilesGetFn(opts.profile)
+		if err != nil {
+			return fmt.Errorf("unknown profile %q (available: %v)", opts.profile, profilesNamesFn())
+		}
+		profileYAML = data
+	}
+
+	// Future: spec 15 will wire --from end-to-end during init. For now
+	// the flag is accepted but ignored with a stderr notice so users
+	// know not to rely on it yet.
+	if opts.fromURL != "" {
+		fmt.Fprintln(stderr, "note: --from is accepted but not yet applied during init (see spec 15)")
 	}
 
 	// 3. Save the sized config.
 	if err := saveConfigFn(configPath(), cfg); err != nil {
 		return fmt.Errorf("save config: %w", err)
+	}
+
+	// Drop the starter bolted.yaml next to config.yaml. We do this
+	// AFTER saveConfig so the BoltedDir is guaranteed to exist
+	// (saveConfig writes to the same directory). Provisioning is a
+	// separate explicit step — `bolt provision` after `bolt unlock`.
+	if profileYAML != nil {
+		yamlPath := filepath.Join(boltedDirFn(), "bolted.yaml")
+		if err := profileWriteFileFn(yamlPath, profileYAML, 0o600); err != nil {
+			return fmt.Errorf("write profile %s: %w", yamlPath, err)
+		}
+		fmt.Fprintf(stderr, "wrote bolted.yaml from profile %q. Run `bolt provision` after `bolt unlock` to apply it.\n", opts.profile)
 	}
 
 	// 4. EnsureVM + StartVM via backend factory.

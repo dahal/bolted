@@ -1,0 +1,47 @@
+---
+title: bolt keychain
+description: Manage the OS-keychain cache for the Bolted password.
+---
+
+When keychain integration is enabled (`keychain: true` in `~/.bolted/config.yaml`), `bolt unlock` caches your password in macOS Keychain or Windows Credential Manager after the first successful unlock. `bolt keychain` is the management surface for that cache.
+
+Today the only subcommand is `forget`.
+
+## Synopsis
+
+```sh
+bolt keychain                  # prints help
+bolt keychain forget           # delete the cached password
+```
+
+## `bolt keychain forget`
+
+Removes the cached password from the OS credential store. Deletion is idempotent — running it when no entry exists succeeds.
+
+```sh
+bolt keychain forget
+# Bolted password removed from keychain.
+```
+
+## Service / account naming
+
+The keychain entry uses:
+
+| Field | Value |
+|---|---|
+| Service | `bolted` |
+| Account | `default` |
+
+This is stable across versions so an upgrade doesn't orphan entries.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success (entry removed, or no entry existed) |
+| `1` | Generic error (credential store unreachable) |
+
+## See also
+
+- [`bolt passwd`](/docs/commands/passwd) — rotating the password also updates the keychain entry
+- [Encryption concepts](/docs/concepts/encryption)

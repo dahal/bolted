@@ -1,0 +1,89 @@
+---
+title: Encryption
+description: How locking and unlocking works, the threat model it defends, and what it deliberately doesn't.
+icon: Lock
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Bolted keeps repo contents inside a LUKS-encrypted volume that lives entirely within the VM. When locked, the bytes on disk are ciphertext. Unlocked, the plaintext exists only inside the guest VM — your host shell can't read or write it.
+
+## Primitives
+
+| Layer | Choice | Why |
+|---|---|---|
+| Full-disk encryption | LUKS2 | Standard, audited, ships with Alpine |
+| Key derivation | Argon2id | Memory-hard, resists GPU attacks |
+| Block layer | dm-crypt | Underlies LUKS |
+| Key residence | VM kernel keyring | Wiped by `cryptsetup close` on `lock` |
+
+The encrypted disk image (`~/.bolted/volume.img` on the host) is presented to the VM as a block device. **LUKS lives inside the VM.** The host never holds the key.
+
+## Unlock flow
+
+1. You run `bolt unlock`.
+2. The CLI prompts for the password (or reads from `--password-stdin` / the OS keychain if enabled).
+3. The CLI starts the VM if it isn't running.
+4. Inside the VM, `cryptsetup open` opens the LUKS device using the password piped on stdin.
+5. The decrypted device is mounted at `/bolted/repos`.
+6. The password buffer in the CLI is zeroed.
+
+The password briefly exists in:
+
+- The CLI process's heap (zeroed immediately after use).
+- A one-shot pipe to `cryptsetup` inside the VM.
+- The kernel keyring inside the VM, until `lock`.
+
+It is never written to disk by Bolted itself.
+
+## Lock flow
+
+`bolt lock` runs in this order:
+
+1. Stop running dev containers (planned — currently the volume is unmounted while leaving any podman activity to be drained).
+2. Unmount `/bolted/repos`.
+3. `cryptsetup close bolted` — the kernel wipes the key from memory.
+4. Optionally stop the VM (`--stop-vm`). Default is to keep the VM running so the next `unlock` is fast.
+
+After step 3, the only path back to plaintext is the password.
+
+## Password handling
+
+- **Never logged.** No debug flag prints the password.
+- **Never written to disk** by Bolted.
+- **OS keychain integration is opt-in.** Set `keychain: true` in `~/.bolted/config.yaml`; on the next successful unlock, the password is stored in macOS Keychain or Windows Credential Manager. Use `bolt keychain forget` to wipe it.
+- **`--password-stdin`** is supported for scripting (`echo "$WS_PW" | bolt unlock --password-stdin`). Mind your shell history.
+- **No recovery.** Losing the password loses the data.
+
+## Rotating the password
+
+`bolt passwd` rotates the LUKS passphrase atomically:
+
+1. Verify the current password.
+2. Add a new keyslot with the new password (both passwords now work).
+3. Verify the new keyslot.
+4. Remove the old keyslot.
+
+If any step fails before step 4, the old password still unlocks the volume — re-run `bolt passwd`. Data is never re-encrypted; this is just a slot rotation.
+
+## Threat model — what this protects
+
+- **Locked + malicious host process.** While locked, `volume.img` is ciphertext at the block level. A host process reading the file can't recover repo contents without the password.
+- **Locked + lost laptop.** Same as above. Argon2id makes offline brute force expensive for strong passwords.
+- **Unlocked + host-side dev tooling.** Host processes (browsers, editors, package managers running on the host, malicious npm/cargo postinstall scripts in *host* projects) cannot reach into the VM's filesystem.
+
+## Threat model — what this does NOT protect
+
+<Callout type="warn">
+Encryption is at-rest only. None of the following are defended against:
+</Callout>
+
+- **Unlocked + root on the host.** An attacker with host root can read the VM's memory and extract repo contents.
+- **Keylogger on the host.** Captures the password as you type it. Out of scope.
+- **Cold-boot / DMA attacks.** The key lives in VM kernel memory while unlocked.
+- **Backup of `volume.img` + weak password.** Offline brute force is hard with Argon2id, but not impossible. Pick a strong passphrase.
+- **Malicious code running inside the VM.** A compromised dev container can read repos on the mounted volume. Per-repo trust mitigations are tracked in [spec 18](https://github.com/dahal/bolted/blob/main/specs/18-devcontainer-trust.md).
+
+## Want the design rationale?
+
+See [`.claude/brainstorm/05-encryption.md`](https://github.com/dahal/bolted/blob/main/.claude/brainstorm/05-encryption.md) in the project repo for the full discussion, including rejected alternatives and open questions.

@@ -6,21 +6,22 @@ import (
 )
 
 func TestStubCommand_ReturnsErrorReferencingSpec(t *testing.T) {
-	// "forward" is still a stub (spec 20) — once that lands, swap this
-	// for another stubbed command from stubSpec.
-	cmd := newStubCmd("forward")
-	if cmd.Use != "forward" {
-		t.Errorf("expected Use=forward, got %q", cmd.Use)
+	// "config" is the last reserved name without an implementation —
+	// the per-key get/set CLI isn't built yet (spec 03 ships the loader,
+	// not the CLI). Update once a stand-alone `bolt config` lands.
+	cmd := newStubCmd("config")
+	if cmd.Use != "config" {
+		t.Errorf("expected Use=config, got %q", cmd.Use)
 	}
-	if !strings.Contains(cmd.Short, "spec 20") {
-		t.Errorf("expected short to mention spec 20, got %q", cmd.Short)
+	if !strings.Contains(cmd.Short, "spec 03") {
+		t.Errorf("expected short to mention spec 03, got %q", cmd.Short)
 	}
 	err := cmd.RunE(cmd, nil)
 	if err == nil {
 		t.Fatal("expected error from stub")
 	}
-	if !strings.Contains(err.Error(), "spec 20") {
-		t.Errorf("expected error to reference spec 20, got: %v", err)
+	if !strings.Contains(err.Error(), "spec 03") {
+		t.Errorf("expected error to reference spec 03, got: %v", err)
 	}
 }
 

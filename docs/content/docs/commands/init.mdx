@@ -1,0 +1,62 @@
+---
+title: bolt init
+description: Create your Bolted environment — encrypted volume, sized VM, password.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Initialise Bolted. Detects host hardware, sizes a VM, prompts for a new password (twice), creates `~/.bolted/config.yaml`, ensures the VM exists, starts it, and creates the encrypted LUKS volume.
+
+## Synopsis
+
+```sh
+bolt init [flags]
+```
+
+## Flags
+
+| Flag | Description |
+|---|---|
+| `--password-stdin` | Read the new password from stdin instead of prompting |
+| `--insecure-password` | Skip the password-strength warning (reserved for spec 17) |
+| `--profile <name>` | Starter profile to apply (reserved for [spec 16](https://github.com/dahal/bolted/blob/main/specs/16-starter-profiles.md)) |
+| `--from <url-or-path>` | Fetch `bolted.yaml` from a URL/path (reserved for [spec 15](https://github.com/dahal/bolted/blob/main/specs/15-bolted-yaml-and-provision.md)) |
+
+## Examples
+
+Interactive setup:
+
+```sh
+bolt init
+```
+
+Scripted setup, reading the password from stdin:
+
+```sh
+printf '%s' "$WS_PW" | bolt init --password-stdin
+```
+
+## What happens
+
+1. Detect host CPU/RAM → sized VM defaults.
+2. Prompt for the new password twice (or read one line from stdin).
+3. Write `~/.bolted/config.yaml`.
+4. Ensure the VM exists, start it.
+5. Create the encrypted volume at `/bolted/volume.img` inside the VM.
+
+<Callout type="warn" title="No recovery">
+Lose the password and you lose the volume. Store it in a password manager.
+</Callout>
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | Generic error (bad config, backend failure, volume creation failed) |
+
+## See also
+
+- [`bolt unlock`](/docs/commands/unlock) — mount the volume after init
+- [`bolt provision`](/docs/commands/provision) — apply `bolted.yaml`
+- [Encryption concepts](/docs/concepts/encryption)

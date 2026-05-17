@@ -1,0 +1,58 @@
+---
+title: bolt stop
+description: Stop a repo's dev container (or all of them).
+---
+
+Stops the dev container for `<repo>` and drops it from the tracked containers list. The repo's data on the encrypted volume is **not** touched — only the running container is reaped.
+
+## Synopsis
+
+```sh
+bolt stop <repo>
+bolt stop --all
+```
+
+## Flags
+
+| Flag | Description |
+|---|---|
+| `--all` | Stop every running Bolted container |
+
+`--all` and a repo argument are mutually exclusive.
+
+## Examples
+
+Stop one container:
+
+```sh
+bolt stop api
+```
+
+Stop everything:
+
+```sh
+bolt stop --all
+```
+
+## What happens
+
+1. Verify Bolted is unlocked.
+2. Resolve targets: the named repo, or every repo recorded in `containers.json`.
+3. For each target, call `devcontainer down` (which removes the container) and drop the entry from `containers.json`.
+
+If you ask to stop a repo with no running container, `bolt stop` prints "nothing to stop" and exits 0.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Stopped (or nothing to stop) |
+| `1` | Generic error (bad arg combination, devcontainer down failed) |
+| `2` | Bolted not initialised, VM not running, or volume locked |
+| `5` | Repo not found (single-target form) |
+
+## See also
+
+- [`bolt dev`](/docs/commands/dev) — start a container
+- [`bolt rm`](/docs/commands/rm) — stop and **delete** the repo
+- [`bolt lock`](/docs/commands/lock) — locks the volume; containers stopped as part of the lock flow

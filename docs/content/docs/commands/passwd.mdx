@@ -1,0 +1,54 @@
+---
+title: bolt passwd
+description: Change the Bolted passphrase (LUKS slot rotation).
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Rotates the LUKS passphrase atomically. Prompts for the current password, verifies it, adds a new keyslot with the new password, verifies the new slot unlocks, then removes the old slot. Data is not re-encrypted.
+
+If the keychain integration is enabled (`keychain: true` in `~/.bolted/config.yaml`), the stored secret is updated after the rotation succeeds.
+
+## Synopsis
+
+```sh
+bolt passwd
+```
+
+No flags.
+
+## Examples
+
+```sh
+bolt passwd
+# Current Bolted password:
+# New Bolted password:
+# Confirm new Bolted password:
+# Bolted password changed.
+```
+
+## Safety
+
+`bolt passwd` is designed so a mid-flight failure never locks you out:
+
+1. Verify current password (no changes if wrong).
+2. Add the new keyslot. Both passwords now work.
+3. Verify the new keyslot. On failure, bail without removing the old slot — re-run `bolt passwd`.
+4. Remove the old keyslot. If this fails, both passwords still work — re-run.
+
+<Callout type="warn">
+There is still no recovery if you forget both passwords. Store the new one before exiting the terminal.
+</Callout>
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Rotated successfully (keychain update failures are warnings, not errors) |
+| `1` | Generic error (keyslot add/remove failed) |
+| `3` | Wrong current password |
+
+## See also
+
+- [`bolt keychain`](/docs/commands/keychain) — manage the cached password
+- [Encryption concepts](/docs/concepts/encryption)

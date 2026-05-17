@@ -1,0 +1,62 @@
+---
+title: bolt rm
+description: Remove a repo from Bolted — stops its container, deletes the directory.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Stops `<repo>`'s dev container (if any), prompts for confirmation, then `rm -rf`s the repo's directory inside the encrypted volume.
+
+<Callout type="warn">
+This is destructive. There is no undelete. Re-cloning with `bolt git clone <url>` is usually the right "undo".
+</Callout>
+
+## Synopsis
+
+```sh
+bolt rm <repo> [--yes]
+```
+
+## Flags
+
+| Flag | Description |
+|---|---|
+| `-y`, `--yes` | Skip the confirmation prompt |
+
+## Examples
+
+Interactive:
+
+```sh
+bolt rm api
+# remove repo "api" from Bolted? (y/N) y
+# removed "api".
+```
+
+Scripted:
+
+```sh
+bolt rm api --yes
+```
+
+## What happens
+
+1. Verify Bolted is unlocked.
+2. Verify `<repo>` exists.
+3. If a container is recorded, call `devcontainer down` and drop the `containers.json` entry.
+4. Prompt for confirmation (unless `--yes`). Anything but `y`/`yes` aborts with exit 1.
+5. `rm -rf /bolted/repos/<repo>` inside the VM.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Repo removed |
+| `1` | Generic error (user aborted, rm failed, container stop failed) |
+| `2` | Bolted not initialised, VM not running, or volume locked |
+| `5` | Repo not found |
+
+## See also
+
+- [`bolt stop`](/docs/commands/stop) — stop the container without deleting
+- [`bolt ls`](/docs/commands/ls)

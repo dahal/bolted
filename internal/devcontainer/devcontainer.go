@@ -70,10 +70,19 @@ type Options struct {
 	DefaultDevcontainerPath string
 }
 
-// UpOpts controls Runner.Up. Reserved for future flags (mount
-// overrides, feature toggles); empty for now but kept for API
-// stability.
-type UpOpts struct{}
+// UpOpts controls Runner.Up. Additive: new fields land here without
+// changing the Runner interface so callers that ignore a field stay
+// source-compatible.
+type UpOpts struct {
+	// NetworkName, if non-empty, names a podman network the started
+	// container will be connected to via a post-Up
+	// `podman network connect` call (the devcontainer CLI has no
+	// equivalent flag — see attachToNetwork). Empty means "do not
+	// attach to any extra network", matching the historical zero-
+	// value behaviour. Spec 19 introduced this field so dev containers
+	// can join the shared `bolted-net` bridge for inter-repo DNS.
+	NetworkName string
+}
 
 // ExecOpts controls Runner.Exec — forwarded directly into the
 // devcontainer CLI's `exec` subcommand. Cwd is the container-side
@@ -156,7 +165,10 @@ func New(b backend.Backend, opts Options) *runner {
 //  2. Refuse to proceed if a container with our name is already running.
 //  3. Pick between the repo's own devcontainer.json and the fallback.
 //  4. Shell out to `devcontainer up …` and parse the container id.
-func (r *runner) Up(ctx context.Context, repoPath string, _ UpOpts) (string, error) {
+//  5. If opts.NetworkName is set, attach the container to that podman
+//     network — the devcontainer CLI has no first-class flag for this
+//     so the connect happens out-of-band (see attachToNetwork).
+func (r *runner) Up(ctx context.Context, repoPath string, opts UpOpts) (string, error) {
 	if repoPath == "" {
 		return "", errors.New("devcontainer: Up: repoPath is empty")
 	}
@@ -190,7 +202,42 @@ func (r *runner) Up(ctx context.Context, repoPath string, _ UpOpts) (string, err
 	if err != nil {
 		return "", fmt.Errorf("devcontainer: up: %w", err)
 	}
+	if opts.NetworkName != "" {
+		if err := attachToNetwork(ctx, r.backend, id, opts.NetworkName); err != nil {
+			return "", err
+		}
+	}
 	return id, nil
+}
+
+// attachToNetwork connects an already-running container to an existing
+// podman network via `podman network connect <network> <id>`.
+//
+// Spec 19 needs every Bolted container to join `bolted-net` so
+// that repo A can reach repo B at `http://bolted-<b>:<port>`. The
+// devcontainer CLI's `up` subcommand does not expose a `--network`
+// flag (it derives the network from devcontainer.json features and the
+// CLI's own defaults), so the cleanest place to wire this is a
+// post-Up podman call against the container id we just received.
+//
+// Exposed at package scope (not a method) so it can be unit-tested
+// directly with a scripted backend without standing up a full Runner.
+// Callers should ensure the named network exists first (see
+// `internal/boltednet.Ensure`) — this helper does not create it.
+func attachToNetwork(ctx context.Context, b backend.Backend, containerID, network string) error {
+	if containerID == "" {
+		return errors.New("devcontainer: attachToNetwork: containerID is empty")
+	}
+	if network == "" {
+		return errors.New("devcontainer: attachToNetwork: network is empty")
+	}
+	res, err := b.Exec(ctx, []string{
+		"podman", "network", "connect", network, containerID,
+	}, backend.ExecOpts{})
+	if err != nil || res.ExitCode != 0 {
+		return wrapExec("network connect", res, err)
+	}
+	return nil
 }
 
 // Down stops and removes the named container via `podman rm -f`.

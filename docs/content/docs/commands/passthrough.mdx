@@ -1,0 +1,91 @@
+---
+title: Passthrough commands
+description: Anything that isn't a reserved bolt subcommand runs inside the VM verbatim — git, gh, gcloud, kubectl, curl, ...
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Bolted does not build wrappers around `git`, `gh`, `gcloud`, `kubectl` and friends. Instead, **any command that isn't a reserved `bolt` subcommand is passed through to the VM** and executed there with your arguments verbatim.
+
+Mental model: `bolt <anything>` ≈ "run `<anything>` inside the Bolted VM."
+
+```sh
+bolt git clone https://github.com/x/y
+bolt git status
+bolt gh auth login --web
+bolt gh pr create
+bolt gcloud auth login --no-launch-browser
+bolt kubectl get pods
+bolt curl https://api.example.com/...
+bolt ssh-keygen -t ed25519
+```
+
+## Why passthrough, not wrappers
+
+- Zero maintenance: when `gh` adds a new subcommand, it works in `bolt` immediately.
+- No flag drift, no double-documenting, no half-supported commands.
+- Existing muscle memory for `git`/`gh`/`gcloud` transfers directly.
+
+## VM vs. container
+
+| Layer | Use | Examples |
+|---|---|---|
+| **VM** (`bolt <cmd>`) | Tools global to Bolted | `git`, `gh`, `gcloud`, `aws`, `kubectl`, `terraform`, `ssh-keygen`, `curl`, `jq` |
+| **Container** ([`bolt exec <repo> <cmd>`](/docs/commands/exec)) | Project-pinned toolchains | `npm`, `cargo`, `bundle`, `pytest`, `mix` |
+| **Container, interactive** ([`bolt dev <repo>`](/docs/commands/dev)) | Live shell in the dev container | everything inside that shell is container-scoped |
+
+## Default working directory
+
+`bolt <cmd>` runs with `cwd = /bolted/repos` by default — so `bolt git clone <url>` lands in the right place.
+
+Override:
+
+```sh
+bolt --cwd api git log         # cwd = /bolted/repos/api
+bolt --cwd /tmp ls             # absolute paths win as-is
+```
+
+## The `--` escape hatch
+
+Reserved names (`ls`, `init`, `dev`, ...) always win over passthrough. To force a passthrough to a system command of the same name, use `--`:
+
+```sh
+bolt -- ls /bolted/repos    # runs system `ls`, not `bolt ls`
+```
+
+## Reserved subcommands (never passed through)
+
+```
+completion  config   dev      exec     export   forward  help
+import      init     keychain lock     logs     ls       passwd
+ports       profiles provision restart rm       shell    status
+stop        trust    unforward unlock  version
+```
+
+Some of these aren't implemented yet — invoking one prints a "not yet implemented" message rather than falling through to the VM.
+
+## What happens
+
+1. The CLI checks: is the first non-flag argument a reserved subcommand? If yes, Cobra handles it. If no, route to passthrough.
+2. Verify Bolted is initialised and unlocked (`test -d /bolted/repos`).
+3. Exec the command inside the VM with the requested cwd, with a PTY if your stdin is a TTY (so `bolt vim file.go` works).
+4. Stream stdout/stderr back; exit with the inner command's exit code.
+
+<Callout type="info">
+The passthrough router does not parse your inner command's flags. `bolt git --version` flows straight through to git.
+</Callout>
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Inner command exited 0 |
+| `1` | Generic error (probe failed, exec failed) |
+| `2` | Bolted not initialised or locked |
+| _other_ | Whatever exit code the inner command returned |
+
+## See also
+
+- [`bolt exec`](/docs/commands/exec) — container-scoped one-shot
+- [`bolt dev`](/docs/commands/dev) — container-scoped interactive shell
+- [`bolt shell`](/docs/commands/shell) — VM-level interactive shell

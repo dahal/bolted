@@ -1,0 +1,13 @@
+# fullstack — opinionated kitchen-sink for web / cloud / k8s work.
+#
+# Features installed via the devcontainer features ecosystem; packages
+# pulled straight from Alpine apk.
+features:
+  - ghcr.io/devcontainers/features/github-cli:1
+  - ghcr.io/devcontainers/features/gcloud-cli:1
+  - ghcr.io/devcontainers/features/kubectl-helm-minikube:1
+  - ghcr.io/devcontainers/features/terraform:1
+packages:
+  - jq
+  - ripgrep
+  - fzf

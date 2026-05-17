@@ -1,0 +1,89 @@
+---
+title: Multi-repo runtime
+description: One VM hosts many repos. Each gets its own dev container with isolated filesystems and ports.
+icon: Boxes
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+A single Bolted VM is designed to host **many repos**, with **multiple dev containers running concurrently**. The layout is:
+
+```
+host
+└── ~/.bolted/volume.img   (encrypted, sealed when locked)
+
+VM (when unlocked)
+└── /bolted/repos/
+    ├── api/         → bolted-api    (podman container)
+    ├── web/         → bolted-web    (podman container)
+    └── docs/        → (no container, just files)
+```
+
+## One VM, N dev containers
+
+Each repo that you `bolt dev` or `bolt exec` against gets its own podman container, named `bolted-<repo>`. Containers share the VM kernel but have separate filesystems, processes, and network namespaces.
+
+Lifecycle:
+
+- Containers start on first `bolt dev <repo>` or `bolt exec <repo> <cmd>`.
+- They keep running across shell exits — `npm run dev` keeps serving after you close the terminal.
+- They stop on `bolt stop <repo>`, `bolt stop --all`, `bolt lock`, or VM shutdown.
+
+Only one container per repo runs at a time. `bolt dev` against an already-running container just attaches a new shell.
+
+## Cross-repo isolation by default
+
+Container A cannot see container B's filesystem or processes. Each repo's bind-mount is scoped to `/bolted/repos/<repo>` and exposed as `/workspaces/<repo>` inside its container.
+
+## Inter-repo networking (inside the VM)
+
+All `bolted-*` containers join a shared podman network. From inside repo A, repo B is reachable by container name:
+
+```sh
+bolt exec api curl http://bolted-web:3000/health
+```
+
+It's documented, not magical — you opt in by using the right hostname.
+
+## Port collisions (host-side)
+
+This is the tricky part: two repos can't both own host `localhost:3000`.
+
+- **Inside the VM, no collision.** Container A's `:3000` and container B's `:3000` live in different network namespaces.
+- **On the host, the first repo to claim a port wins.** The second repo that wants the same port is remapped to the next free port and the new mapping is reported back.
+
+<Callout type="info">
+The dedicated `bolt ports` command for inspecting host-port mappings is tracked in [spec 14](https://github.com/dahal/bolted/blob/main/specs/14-port-forwarding.md) and not yet implemented. For now, `bolt ls` shows which containers are running.
+</Callout>
+
+## Resource sharing
+
+All containers share the VM's RAM and CPU budget. Defaults computed by `bolt init` aim for a 1–2 repo workload:
+
+- RAM: `max(4 GB, min(16 GB, 25% of host RAM))`
+- CPUs: `max(2, min(8, 50% of host cores))`
+
+For four or more active repos, bump the allocation by editing `~/.bolted/config.yaml` and restarting the VM. Disk is sparse — it grows on demand up to the configured maximum.
+
+Check current state:
+
+```sh
+bolt status
+```
+
+## State files
+
+Bolted tracks what it has started in `~/.bolted/state/`:
+
+- `containers.json` — which repos have running dev containers (with their podman container IDs).
+- `ports.json` — host-port allocations (populated when port forwarding lands).
+
+These are managed by the CLI; you shouldn't edit them by hand.
+
+## Shared services (Postgres, Redis, ...)
+
+Not built in for MVP. The crude workaround: dedicate a "service repo" and run Postgres inside it as a normal dev container. Other repos reach it at `http://bolted-postgres:5432`. First-class `bolt service add` is post-MVP.
+
+## Want the design rationale?
+
+See [`.claude/brainstorm/02-architecture.md`](https://github.com/dahal/bolted/blob/main/.claude/brainstorm/02-architecture.md) — specifically the *Multi-repo runtime model* and *Port forwarding* sections.

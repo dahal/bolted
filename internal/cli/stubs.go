@@ -10,16 +10,9 @@ import (
 // stub error includes this pointer so a user (or agent) hitting an
 // unimplemented command knows where to look.
 var stubSpec = map[string]string{
-	"ports":     "spec 14",
-	"forward":   "spec 20",
-	"unforward": "spec 20",
-	"profiles":  "spec 16",
-	"trust":     "spec 18",
-	"logs":      "spec 20",
-	"export":    "spec 20",
-	"import":    "spec 20",
-	"restart":   "spec 20",
-	"config":    "spec 03",
+	// "config" is reserved for future per-key get/set; the loader itself
+	// (spec 03) is implemented, but no `bolt config <key> <value>` CLI yet.
+	"config": "spec 03",
 }
 
 // commandsProvidedByCobra are reserved names we do NOT register stubs for:
@@ -33,36 +26,67 @@ var commandsProvidedByCobra = map[string]bool{
 // Implemented commands (currently only "version") replace the corresponding
 // stub. Cobra-provided commands are skipped (Cobra adds them automatically).
 func registerSubcommands(root *cobra.Command) {
-	root.AddCommand(newVersionCmd())
+	// Lifecycle (spec 09 + 10).
 	root.AddCommand(newInitCmd())
 	root.AddCommand(newUnlockCmd())
 	root.AddCommand(newLockCmd())
 	root.AddCommand(newStatusCmd())
 	root.AddCommand(newShellCmd())
-	root.AddCommand(newPasswdCmd())
-	root.AddCommand(newKeychainCmd())
+	root.AddCommand(newRestartCmd())
+
+	// Repo lifecycle (spec 13).
 	root.AddCommand(newDevCmd())
 	root.AddCommand(newExecCmd())
 	root.AddCommand(newStopCmd())
 	root.AddCommand(newLsCmd())
 	root.AddCommand(newRmCmd())
+
+	// Networking (specs 14, 20).
+	root.AddCommand(newPortsCmd())
+	root.AddCommand(newForwardCmd())
+	root.AddCommand(newUnforwardCmd())
+
+	// Provisioning (specs 15, 16).
 	root.AddCommand(newProvisionCmd())
+	root.AddCommand(newProfilesCmd())
+
+	// Security (specs 17, 18).
+	root.AddCommand(newPasswdCmd())
+	root.AddCommand(newKeychainCmd())
+	root.AddCommand(newTrustCmd())
+
+	// Power-user (spec 20).
+	root.AddCommand(newLogsCmd())
+	root.AddCommand(newExportCmd())
+	root.AddCommand(newImportCmd())
+
+	// Meta.
+	root.AddCommand(newVersionCmd())
 
 	implemented := map[string]bool{
-		"version":   true,
 		"init":      true,
 		"unlock":    true,
 		"lock":      true,
 		"status":    true,
 		"shell":     true,
-		"passwd":    true,
-		"keychain":  true,
+		"restart":   true,
 		"dev":       true,
 		"exec":      true,
 		"stop":      true,
 		"ls":        true,
 		"rm":        true,
+		"ports":     true,
+		"forward":   true,
+		"unforward": true,
 		"provision": true,
+		"profiles":  true,
+		"passwd":    true,
+		"keychain":  true,
+		"trust":     true,
+		"logs":      true,
+		"export":    true,
+		"import":    true,
+		"version":   true,
 	}
 	for _, name := range reservedSubcommands {
 		if implemented[name] || commandsProvidedByCobra[name] {

@@ -1,0 +1,63 @@
+---
+title: bolt dev
+description: Start (or attach to) a repo's dev container.
+---
+
+Brings up the dev container for `<repo>` on first use, then attaches an interactive shell. Subsequent invocations attach a new shell to the running container. With `-- <cmd>` it runs a one-shot command in the container. With `-d`/`--detach` it starts the container without attaching.
+
+## Synopsis
+
+```sh
+bolt dev <repo> [--detach] [-- <cmd>...]
+```
+
+## Flags
+
+| Flag | Description |
+|---|---|
+| `-d`, `--detach` | Start the container without attaching a shell |
+
+## Examples
+
+Interactive shell in the `api` dev container (starting it on first use):
+
+```sh
+bolt dev api
+```
+
+Run a one-shot command without attaching:
+
+```sh
+bolt dev api -- npm test
+```
+
+Start the container in the background:
+
+```sh
+bolt dev api --detach
+```
+
+## What happens
+
+1. Verify Bolted is unlocked.
+2. Verify `<repo>` exists at `/bolted/repos/<repo>`.
+3. If no container is recorded for `<repo>` in `~/.bolted/state/containers.json`, run `devcontainer up` and record the container ID.
+4. If `-- <cmd>` was provided, exec that command in the container and exit with its status.
+5. If `--detach` was provided, print the container ID and return.
+6. Otherwise, exec an interactive shell with TTY in the container.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | Generic error (devcontainer up failed, exec failed) |
+| `2` | Bolted not initialised, VM not running, or volume locked |
+| `5` | Repo not found in Bolted |
+| _other_ | The exit code from the user's command or shell |
+
+## See also
+
+- [`bolt exec`](/docs/commands/exec) — non-interactive one-shot, no shell
+- [`bolt stop`](/docs/commands/stop) — stop the container, keep the data
+- [Multi-repo runtime](/docs/concepts/multi-repo)

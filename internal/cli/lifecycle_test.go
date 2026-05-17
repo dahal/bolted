@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -306,15 +307,105 @@ func TestRunInit_PromptFails(t *testing.T) {
 	}
 }
 
-func TestRunInit_ProfileFromNoticePrinted(t *testing.T) {
+func TestRunInit_FromNoticePrinted(t *testing.T) {
+	// --from is still a deferred notice until spec 15 wires it in.
 	var stderr bytes.Buffer
 	s := &lifecycleStubs{}
 	s.install(t)
-	if err := runInit(context.Background(), io.Discard, &stderr, initOptions{profile: "fullstack", fromURL: "x"}); err != nil {
+	if err := runInit(context.Background(), io.Discard, &stderr, initOptions{fromURL: "x"}); err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
-	if !strings.Contains(stderr.String(), "--profile") {
-		t.Errorf("expected notice about --profile, got: %q", stderr.String())
+	if !strings.Contains(stderr.String(), "--from") {
+		t.Errorf("expected notice about --from, got: %q", stderr.String())
+	}
+}
+
+func TestRunInit_ProfileWritesYAML(t *testing.T) {
+	// --profile end-to-end: fetch bytes via profilesGetFn, persist to
+	// BoltedDir/bolted.yaml with 0600, print a nudge to stderr.
+	var stderr bytes.Buffer
+	s := &lifecycleStubs{}
+	s.install(t)
+
+	origGet := profilesGetFn
+	origWrite := profileWriteFileFn
+	t.Cleanup(func() { profilesGetFn = origGet; profileWriteFileFn = origWrite })
+
+	want := []byte("features:\n  - ghcr.io/devcontainers/features/github-cli:1\n")
+	var calledGet string
+	var wrotePath string
+	var wroteBytes []byte
+	var wrotePerm os.FileMode
+	profilesGetFn = func(name string) ([]byte, error) {
+		calledGet = name
+		return want, nil
+	}
+	profileWriteFileFn = func(path string, data []byte, perm os.FileMode) error {
+		wrotePath = path
+		wroteBytes = data
+		wrotePerm = perm
+		return nil
+	}
+
+	if err := runInit(context.Background(), io.Discard, &stderr, initOptions{profile: "fullstack"}); err != nil {
+		t.Fatalf("unexpected: %v", err)
+	}
+	if calledGet != "fullstack" {
+		t.Errorf("profilesGetFn called with %q, want fullstack", calledGet)
+	}
+	if !strings.HasSuffix(wrotePath, filepath.Join("bolted.yaml")) {
+		t.Errorf("unexpected write path %q", wrotePath)
+	}
+	if string(wroteBytes) != string(want) {
+		t.Errorf("wrote %q, want %q", wroteBytes, want)
+	}
+	if wrotePerm != 0o600 {
+		t.Errorf("perm = %v, want 0o600", wrotePerm)
+	}
+	if !strings.Contains(stderr.String(), "fullstack") {
+		t.Errorf("expected stderr to mention profile name, got %q", stderr.String())
+	}
+}
+
+func TestRunInit_ProfileUnknownErrors(t *testing.T) {
+	s := &lifecycleStubs{}
+	s.install(t)
+
+	origGet := profilesGetFn
+	origNames := profilesNamesFn
+	t.Cleanup(func() { profilesGetFn = origGet; profilesNamesFn = origNames })
+
+	profilesGetFn = func(string) ([]byte, error) { return nil, errors.New("boom") }
+	profilesNamesFn = func() []string { return []string{"minimal", "fullstack"} }
+
+	err := runInit(context.Background(), io.Discard, io.Discard, initOptions{profile: "bogus"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "bogus") {
+		t.Errorf("expected error to name the bad profile, got %v", err)
+	}
+	if !strings.Contains(msg, "minimal") || !strings.Contains(msg, "fullstack") {
+		t.Errorf("expected error to list available profiles, got %v", err)
+	}
+}
+
+func TestRunInit_ProfileWriteFails(t *testing.T) {
+	s := &lifecycleStubs{}
+	s.install(t)
+
+	origGet := profilesGetFn
+	origWrite := profileWriteFileFn
+	t.Cleanup(func() { profilesGetFn = origGet; profileWriteFileFn = origWrite })
+
+	profilesGetFn = func(string) ([]byte, error) { return []byte("x"), nil }
+	want := errors.New("disk-full")
+	profileWriteFileFn = func(string, []byte, os.FileMode) error { return want }
+
+	err := runInit(context.Background(), io.Discard, io.Discard, initOptions{profile: "fullstack"})
+	if !errors.Is(err, want) {
+		t.Errorf("expected wrapped write err, got %v", err)
 	}
 }
 

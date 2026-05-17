@@ -1,0 +1,118 @@
+---
+title: Toolchain layers
+description: How Bolted decides which tools (git, gh, gcloud, node, ruby, …) are available where.
+icon: Layers
+---
+
+Tool availability is configured in three layers. Each layer answers a different question, and they compose: a process inside a dev container sees its container's pinned toolchain first, then the Bolted profile, then the VM base, on `$PATH`.
+
+| Layer | Scope | Examples | How configured |
+|---|---|---|---|
+| **1. VM base image** | Every Bolted install | `podman`, `cryptsetup`, `git`, `openssh`, `bash`, `curl` | Hardcoded in the Alpine image |
+| **2. Bolted profile** | One Bolted instance, all repos | `gh`, `gcloud`, `kubectl`, `terraform`, `jq`, custom shell, dotfiles | `~/.bolted/bolted.yaml`, applied by `bolt provision` |
+| **3. Per-repo devcontainer** | One repo's container | `node@20`, `ruby@3.3`, `rust@1.78`, project linters | `.devcontainer/devcontainer.json` in the repo |
+
+The questions each layer answers:
+
+- "What does **every** Bolted install always have?" → base
+- "What does **this person/team** always want?" → profile
+- "What does **this project** need?" → devcontainer
+
+## Layer 1 — VM base image
+
+Minimal Alpine. Pre-baked with `podman`, `cryptsetup`, `git`, `openssh`, `bash`, `curl`. Nothing else. The image is intentionally tiny (~150 MB on disk, ~256 MB RAM idle) so it stays cheap to ship and audit.
+
+Anything project- or person-specific does NOT belong here. Toolchains come from the layers below.
+
+## Layer 2 — `bolted.yaml`
+
+Lives at `~/.bolted/bolted.yaml`. Applied by `bolt provision` (which also runs as the last step of `bolt init`).
+
+```yaml
+# Reuse the devcontainer features ecosystem for VM-wide installs.
+features:
+  - ghcr.io/devcontainers/features/github-cli:1
+  - ghcr.io/devcontainers/features/gcloud-cli:1
+  - ghcr.io/devcontainers/features/kubectl-helm-minikube:1
+  - ghcr.io/devcontainers/features/terraform:1
+
+# Raw Alpine packages, escape hatch when no feature exists.
+packages:
+  - jq
+  - ripgrep
+  - fzf
+
+# Applied inside the VM, not on host.
+gitconfig:
+  user.name: Your Name
+  user.email: your@email.com
+
+shell: zsh
+
+# Files copied into the VM home dir at provision time.
+# Source paths are relative to the bolted.yaml file location.
+dotfiles:
+  - .zshrc
+  - .config/nvim/
+```
+
+### Why reuse devcontainer features?
+
+- They already exist for most common tools, community-maintained and versioned.
+- We don't have to write or audit installers ourselves.
+- The same ecosystem powers per-repo devcontainers, so users only learn one format.
+
+The `packages`, `gitconfig`, `shell`, and `dotfiles` keys cover everything outside the features ecosystem.
+
+### Applying changes
+
+```sh
+# Apply the local bolted.yaml (idempotent).
+bolt provision
+
+# Check for drift without changing anything.
+bolt provision --check
+
+# Fetch a profile from a URL or path, write it locally, then apply.
+bolt provision --from https://example.com/team/bolted.yaml
+```
+
+`bolt provision --check` exits non-zero on drift. Useful for shell prompts and CI.
+
+## Layer 3 — per-repo devcontainer
+
+Standard `.devcontainer/devcontainer.json` in the repo. This is unmodified upstream devcontainer spec — anything that works with VS Code Dev Containers or the `devcontainer` CLI works here.
+
+```jsonc
+{
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" }
+  },
+  "postCreateCommand": "npm install"
+}
+```
+
+`bolt dev <repo>` and `bolt exec <repo> <cmd>` use this file. The dev container bind-mounts the repo from the encrypted volume, so changes from inside the container persist there.
+
+## Team sharing
+
+Commit a `bolted.yaml` to a repo (e.g. `myteam/dev-setup`). A new hire bootstraps with:
+
+```sh
+bolt init                              # set password, size VM, create volume
+bolt unlock
+bolt provision --from https://github.com/myteam/dev-setup/raw/main/bolted.yaml
+```
+
+After the first fetch, the file is at `~/.bolted/bolted.yaml`; subsequent `bolt provision` runs use the local copy. Re-fetch (or symlink to a checked-out copy) to pick up team changes.
+
+## What goes in which layer
+
+- **Holds credentials, hits external services** (gh, gcloud, aws) → profile.
+- **Project-pinned language toolchain** (Node 18 vs 20, Ruby 3.2 vs 3.3) → devcontainer.
+- **Always-on plumbing** (git, ssh, podman) → base.
+
+## Want the design rationale?
+
+See [`.claude/brainstorm/07-toolchain-config.md`](https://github.com/dahal/bolted/blob/main/.claude/brainstorm/07-toolchain-config.md) for the full discussion, including tradeoffs and open questions.

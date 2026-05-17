@@ -1,0 +1,57 @@
+---
+title: bolt exec
+description: Run a one-shot, non-interactive command inside a repo's dev container.
+---
+
+Runs `<cmd>` inside `<repo>`'s dev container, non-interactively. The container is started on demand if it isn't already running.
+
+Use `bolt exec` for scripted / CI-style invocations. Use [`bolt dev`](/docs/commands/dev) when you want an interactive shell.
+
+## Synopsis
+
+```sh
+bolt exec <repo> <cmd> [args...]
+```
+
+## Examples
+
+Install dependencies:
+
+```sh
+bolt exec api npm install
+```
+
+Run tests:
+
+```sh
+bolt exec api npm test
+```
+
+Cross-repo HTTP check (via the shared Bolted network):
+
+```sh
+bolt exec api curl http://bolted-web:3000/health
+```
+
+## What happens
+
+1. Verify Bolted is unlocked.
+2. Verify `<repo>` exists.
+3. If no container record exists, run `devcontainer up` and record the ID.
+4. Exec `<cmd> [args...]` in the container with cwd `/bolted/repos/<repo>`.
+5. Exit with the command's exit code.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Command succeeded |
+| `1` | Generic error (no command given, devcontainer up failed) |
+| `2` | Bolted not initialised, VM not running, or volume locked |
+| `5` | Repo not found |
+| _other_ | The exit code from `<cmd>` |
+
+## See also
+
+- [`bolt dev`](/docs/commands/dev)
+- [Passthrough commands](/docs/commands/passthrough) — for VM-level commands (`git`, `gh`, `kubectl`)

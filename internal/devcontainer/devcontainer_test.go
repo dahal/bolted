@@ -726,3 +726,107 @@ func TestMockBackendInteroperability(t *testing.T) {
 // scriptedBackend in earlier iterations consumed stdin and we may
 // add similar logic later; cheap insurance against churn.
 var _ = io.Discard
+
+// TestUpAttachToNetworkSuccess covers the spec-19 post-Up wiring:
+// when UpOpts.NetworkName is set the runner issues a
+// `podman network connect <network> <id>` call after parsing the
+// container id, and returns that id unchanged.
+func TestUpAttachToNetworkSuccess(t *testing.T) {
+	be := &scriptedBackend{}
+	be.ok()                                                  // which devcontainer
+	be.ok()                                                  // podman ps
+	be.ok()                                                  // test -f
+	be.okStdout(`{"outcome":"success","containerId":"abc"}`) // devcontainer up
+	be.ok()                                                  // podman network connect
+
+	r := New(be, Options{})
+	id, err := r.Up(context.Background(), "/repos/foo", UpOpts{NetworkName: "bolted-net"})
+	if err != nil {
+		t.Fatalf("Up: %v", err)
+	}
+	if id != "abc" {
+		t.Fatalf("id: got %q want %q", id, "abc")
+	}
+	connect := be.calls[4]
+	wantConnect := []string{"podman", "network", "connect", "bolted-net", "abc"}
+	if !reflect.DeepEqual(connect.cmd, wantConnect) {
+		t.Fatalf("connect argv: got %v want %v", connect.cmd, wantConnect)
+	}
+}
+
+// TestUpAttachToNetworkFailure covers the post-Up connect call
+// failing — Up must surface the error rather than silently dropping
+// it (an unattached container would otherwise sit on the wrong
+// network, which is exactly the bug spec 19 is preventing).
+func TestUpAttachToNetworkFailure(t *testing.T) {
+	be := &scriptedBackend{}
+	be.ok()                                                  // which devcontainer
+	be.ok()                                                  // podman ps
+	be.ok()                                                  // test -f
+	be.okStdout(`{"outcome":"success","containerId":"abc"}`) // devcontainer up
+	be.fail(125, "no such network: bolted-net")           // podman network connect
+
+	r := New(be, Options{})
+	_, err := r.Up(context.Background(), "/repos/foo", UpOpts{NetworkName: "bolted-net"})
+	if err == nil || !strings.Contains(err.Error(), "no such network") {
+		t.Fatalf("want connect failure surfaced, got %v", err)
+	}
+}
+
+// TestUpNoNetworkSkipsAttach pins the additive contract: the empty
+// NetworkName must NOT trigger the connect call so existing callers
+// stay byte-for-byte identical to pre-spec-19 behaviour.
+func TestUpNoNetworkSkipsAttach(t *testing.T) {
+	be := &scriptedBackend{}
+	be.ok()                                                   // which devcontainer
+	be.ok()                                                   // podman ps
+	be.ok()                                                   // test -f
+	be.okStdout(`{"outcome":"success","containerId":"abc"}`)  // devcontainer up
+
+	r := New(be, Options{})
+	if _, err := r.Up(context.Background(), "/repos/foo", UpOpts{}); err != nil {
+		t.Fatalf("Up: %v", err)
+	}
+	for _, c := range be.calls {
+		if len(c.cmd) >= 3 && c.cmd[0] == "podman" && c.cmd[1] == "network" && c.cmd[2] == "connect" {
+			t.Fatalf("unexpected network connect call: %v", c.cmd)
+		}
+	}
+}
+
+// TestAttachToNetworkSuccess exercises the helper directly so the
+// happy path is covered even outside the Up flow (other callers may
+// want to re-attach a container after a restart, for example).
+func TestAttachToNetworkSuccess(t *testing.T) {
+	be := &scriptedBackend{}
+	be.ok()
+	if err := attachToNetwork(context.Background(), be, "cid", "bolted-net"); err != nil {
+		t.Fatalf("attachToNetwork: %v", err)
+	}
+	wantCmd := []string{"podman", "network", "connect", "bolted-net", "cid"}
+	if !reflect.DeepEqual(be.calls[0].cmd, wantCmd) {
+		t.Fatalf("argv: got %v want %v", be.calls[0].cmd, wantCmd)
+	}
+}
+
+// TestAttachToNetworkValidation covers the two argument-validation
+// branches (empty containerID, empty network).
+func TestAttachToNetworkValidation(t *testing.T) {
+	if err := attachToNetwork(context.Background(), &scriptedBackend{}, "", "net"); err == nil {
+		t.Fatal("expected empty-containerID error")
+	}
+	if err := attachToNetwork(context.Background(), &scriptedBackend{}, "cid", ""); err == nil {
+		t.Fatal("expected empty-network error")
+	}
+}
+
+// TestAttachToNetworkBackendError surfaces the backend-level failure
+// branch of the connect call.
+func TestAttachToNetworkBackendError(t *testing.T) {
+	be := &scriptedBackend{}
+	be.failErr(errors.New("vm offline"))
+	err := attachToNetwork(context.Background(), be, "cid", "net")
+	if err == nil || !strings.Contains(err.Error(), "vm offline") {
+		t.Fatalf("want backend error wrapped, got %v", err)
+	}
+}
