@@ -1,0 +1,66 @@
+---
+title: Problem & solution
+description: What Bolted exists to fix, the threat model it targets, and why a VM was the right shape.
+icon: Target
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## The problem
+
+A modern dev environment installs thousands of third-party packages. `npm install` on a typical Node project pulls 1,500+ packages transitively. `pip install`, `cargo build`, `bundle install`, `go mod download` — same shape, different ecosystems. Each of those packages can run arbitrary code on install (postinstall scripts, build scripts, just being `require`d) and is trusted with full access to the user's machine.
+
+When that code runs on your laptop, it has the same privileges you do:
+
+- Every repo in `~/Code`, including ones unrelated to the package — staging environments, customer code, employer code.
+- SSH keys (`~/.ssh/id_*`).
+- Cloud credentials (`~/.aws/credentials`, `~/.config/gcloud/credentials.db`, GitHub tokens in `~/.config/gh/`).
+- Browser cookies, password manager databases, `.env` files with API tokens.
+- The ability to modify *other* repos and stage compromised commits that look like they came from you.
+
+This isn't hypothetical. Compromised npm packages have been used to steal cryptocurrency wallets, exfiltrate AWS keys, plant supply-chain backdoors, and ransack git history. The xz incident showed how patient an attacker can be. The blast radius of "I ran `npm install` in the wrong directory" is enormous and growing.
+
+<Callout type="warn">
+The threat model here is **supply-chain compromise via dev tooling**, not "a sophisticated nation-state attacker who already has root on your laptop." We're trying to make a typical `npm install` survivable when one of the 1,500 transitive deps turns out to be hostile.
+</Callout>
+
+## What we want
+
+Three properties, in priority order:
+
+1. **At-rest secrecy.** When the Bolted is locked (no one is actively developing), the repo bytes on disk are ciphertext. A casual look (host malware running as your user, an unrelated process scraping `find ~ -type f`, a stolen laptop) gets nothing useful.
+2. **Active-use isolation.** When unlocked, the repos live inside a Linux VM. A host-side process — even one you ran yourself in another terminal — can't read or write those repo files directly.
+3. **Boring developer experience.** It has to feel close enough to native development that people actually use it. `bolt git clone …`, `bolt gh auth login`, `bolt gcloud …` all behave the way the host versions do. Editors keep working. `localhost:3000` is reachable from the host browser.
+
+What we explicitly do *not* claim:
+
+- We are not a sandbox per package. Once `cargo install evil-crate` runs inside Bolted, that crate is inside the trust boundary. Bolted isolates the *host* from Bolted, not packages from each other.
+- We are not a defense against a kernel-level attacker on the host. If they own the hypervisor, they own the VM.
+- We are not a substitute for code review, SBOMs, or dependency pinning. Those are upstream problems; Bolted is downstream containment.
+
+## Why a VM (and not containers, or namespacing)
+
+We considered three alternative shapes and rejected each:
+
+**Containers on the host directly** (Docker / Podman with bind-mounts). The default flow bind-mounts the repo from the host into the container, which means host malware can still read and modify those files at any time. You can use volumes (clone inside a Docker volume) to fix that, but:
+
+- On Linux, those volumes are just files on disk owned by root in `/var/lib/docker/volumes/`; nothing stops a host process from reading them.
+- The kernel boundary between host and container is shared. Container escapes exist. The xz attacker would have had the same privileges as the host runtime.
+- Encryption-at-rest requires putting the Docker data root on a LUKS volume — not impossible but never the default and easy to set up wrong.
+
+**Host-level sandboxing** (Bubblewrap, Firejail, macOS sandbox profiles). These work for sandboxing one process at a time but don't compose into a "general dev environment" — every spawned tool would need its own profile, every spawn breaks unless explicitly allowed. The complexity surface is enormous and the misconfiguration risk is worse than no sandbox.
+
+**A Linux VM** (Lima on Mac, WSL2 on Windows). The kernel boundary is real. The disk image is one file we can encrypt. The VM has full Linux semantics so anything that runs on Linux (cryptsetup, podman, devcontainers) works the same in both backends. The downside is weight — a few hundred MB of base image, ~256 MB of RAM idle — but that's tolerable on the kind of hardware people develop on.
+
+The VM gives us the at-rest secrecy (encrypted disk image) and the active-use isolation (kernel boundary) almost for free. The hard part is making it feel native, which is what the rest of the architecture exists to solve.
+
+## The solution shape
+
+Four layers, each does one thing:
+
+1. **A Linux VM per host.** Lima on Mac, WSL2 on Windows. Boots Alpine + Podman + the minimum tools needed to host an encrypted volume and dev containers.
+2. **A LUKS-encrypted volume** inside the VM. Repos live in `/bolted/repos/<name>/`. The host sees the volume as one opaque file.
+3. **Per-repo dev containers**, started by the standard devcontainer CLI. Each repo's `.devcontainer/devcontainer.json` is honored. Containers are isolated from each other.
+4. **A passthrough CLI** (`bolt`) that runs whatever you type inside the VM. `bolt git clone …` → `git clone` inside the VM. `bolt npm install` → in the right container. `bolt gh auth login` → in the VM, where your gh credentials live.
+
+The user-facing pages — [Encryption](/docs/concepts/encryption), [Multi-repo](/docs/concepts/multi-repo), [Toolchain layers](/docs/concepts/toolchain-layers) — go into each layer's mechanics. The next page, [Architecture](/docs/developers/architecture), shows how the Go packages map onto this shape.
