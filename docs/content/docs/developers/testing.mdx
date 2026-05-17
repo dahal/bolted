@@ -1,0 +1,143 @@
+---
+title: Testing strategy
+description: What gets unit-tested vs. what needs real hardware, how the mocks work, the BOLTED_E2E=1 contract, and what 100% coverage actually means here.
+icon: FlaskConical
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## Three test tiers
+
+| Tier | Where it runs | What it proves |
+|---|---|---|
+| **Unit** | Every `go test ./...` invocation, no special setup | Pure logic + every code branch via mock backends. Target: 100% statement coverage on every internal package. |
+| **Integration** | `go test ./... -tags integration` (none yet — placeholder tier) | Higher-fidelity tests that still use mocks but stitch multiple packages together. Currently folded into unit tests. |
+| **End-to-end** | `BOLTED_E2E=1 go test ./...` on real hardware | Real Lima / WSL2 / cryptsetup / podman behaviour. Validates that what we *think* the system calls do matches what they actually do. |
+
+The unit tier is where almost everything lives. The e2e tier exists to catch the things you can only validate against the real binary — argv format drift, error message variants, kernel quirks.
+
+## What "100% coverage" means here
+
+Two definitions matter, and they don't always agree:
+
+**Per-function coverage** (`go tool cover -func`) is the meaningful one for this codebase. Every function in every internal package reports 100.0%. That's the bar.
+
+**Aggregate package coverage** (`go test -cover`) sometimes lags slightly — 99.4% or 99.8% — for reasons that aren't a real gap:
+
+- Go counts the `init()` blocks of test-only packages.
+- `var x = …` initialisers at package level count as statements but can't be exercised by tests (they ran at package load).
+- Block-coverage edge cases around generic type instantiations.
+
+When chasing coverage, trust per-function:
+
+```
+go test -coverprofile=/tmp/p.cov ./internal/cli/...
+go tool cover -func=/tmp/p.cov | grep -v "100.0%"
+```
+
+If per-function is empty (all 100%), the aggregate number is a counting artifact.
+
+The only package that's intentionally below 100% is **`cmd/bolt`** (80%). The 20% gap is `main()` itself — three lines that call `os.Exit(cli.Execute(invokedName(os.Args[0]), os.Args[1:]))`. Exercising `main` requires spawning a subprocess from a test, which is brittle and forces every contributor to deal with `TestMain` quirks. Every line of logic that `main` reaches is at 100% via `cli.Execute` directly.
+
+## The mock backend
+
+`internal/backend/mock.Mock` is the workhorse. It satisfies the `Backend` interface, records every method call in a `Calls` slice (or per-method counters), and lets tests configure return values per method via `ErrXxx` fields and `ExecResult` / `IsRunningResult`.
+
+A canonical test setup:
+
+```go
+import "github.com/dahal/bolted/internal/backend/mock"
+
+func TestSomething(t *testing.T) {
+    m := mock.New()
+    m.ExecResult = backend.ExecResult{ExitCode: 0, Stdout: []byte("hello")}
+    m.ErrEnsureVM = errors.New("simulated failure")
+
+    err := someFunctionUnderTest(ctx, m)
+    if !errors.Is(err, somePackage.ErrXyz) { t.Fatalf("…") }
+
+    // Assert on what was called:
+    methods := m.Methods()  // returns []string of method names in call order
+    if methods[0] != "EnsureVM" { t.Errorf("…") }
+}
+```
+
+The mock is *recording*, not *behavioural*. It doesn't model real backend semantics (a `StartVM` followed by `IsRunning` won't return `true` unless you ask it to). Tests configure the canned responses they expect.
+
+## Per-package test helpers
+
+Most packages with non-trivial state also expose a test helper that sets up + tears down the indirection vars in one call. Examples worth knowing:
+
+- **`internal/cli/lifecycle_test.go::lifecycleStubs`** — installs fake `newBackendFn` / `loadConfigFn` / `saveConfigFn` / `newPrompterFn` / `newVolumeFn` / `detectDefaultsFn` / `boltedDirFn`. Used by every test that exercises `runInit` / `runUnlock` / `runLock` and by all the lifecycle-dependent commands that came later (`runDev`, `runExec`, etc.). The `install(t)` method registers `t.Cleanup` so each test gets a fresh state.
+- **`internal/cli/dev_cmd_test.go::withRunnerStub`** — swaps `newRunnerFn` for a fake `devcontainer.Runner` (`fakeRunner`) and neutralises `trustGateFn`. Used by every test that runs through `runDev` or `runExec`.
+- **`internal/cli/dev_cmd_test.go::installDevSetup`** — composes the above with a state-dir tempdir + mock backend response queue. The shorthand for "give me a fully wired runDev test."
+
+The pattern: a test should *opt into* the real implementation of any seam it specifically wants to exercise. Default behaviour is fully stubbed so the test surface stays scoped to what the test is actually about.
+
+## E2E tests — the `BOLTED_E2E=1` contract
+
+Anything that interacts with real external systems is in an `*_e2e_test.go` file that starts with a skip guard:
+
+```go
+func TestFoo_E2E(t *testing.T) {
+    if os.Getenv("BOLTED_E2E") != "1" {
+        t.Skip("e2e tests gated by BOLTED_E2E=1")
+    }
+    // additional OS / installed-tool gates as needed
+    if runtime.GOOS != "linux" {
+        t.Skip("requires dm-crypt; run on a real Linux host")
+    }
+    // …
+}
+```
+
+Packages with e2e tests today:
+
+| Package | What the e2e validates | Required environment |
+|---|---|---|
+| `internal/backend/lima/` | Real `limactl` create/start/exec/stop/delete | Mac with Lima installed |
+| `internal/backend/wsl2/` | Real `wsl.exe` import/exec/unregister | Windows with WSL2 + rootfs tar |
+| `internal/volume/` | Real `cryptsetup` LUKS lifecycle | Linux host with dm-crypt + cryptsetup |
+
+E2E tests do **not** run in normal CI. They're a manual checklist before cutting a release — or, eventually, a separate CI job that spins up the right hardware.
+
+## What's NOT tested (and why)
+
+Honest scope:
+
+- **The actual production binaries on the actual three target OSes.** CI cross-compiles all three from a Linux runner but doesn't execute the windows-amd64 or darwin-amd64 binaries. The first time those run is on a real machine. Acceptable risk because the surface area exercised at boot is small and `cli.Execute` itself is 100% covered.
+- **The devcontainer CLI argv format.** Our `internal/devcontainer/devcontainer.go` constructs the `devcontainer up` invocation; we test that the *args* we'd pass are correct. We don't test that `devcontainer up` then actually does what we expect — that's the devcontainer project's contract. If they change the JSON envelope shape on stdout, our parse breaks at e2e time.
+- **Race conditions in `bolt lock` while `bolt dev` is running.** The state files are written atomically (tempfile + rename) so the file itself never corrupts, but the semantic outcome of "user races their own commands" isn't tested. Listed as a known sharp edge.
+- **Real cryptsetup error message text.** `internal/volume` matches on substrings ("No key available with this passphrase", "No usable keyslot is available") that come from cryptsetup 2.x. If a future cryptsetup version changes wording, e2e catches it; unit tests pass either way because they use canned `ExecResult.Stderr`.
+
+## Running the suite
+
+```
+# Unit tests, every package, with coverage
+go test -count=1 -cover ./...
+
+# Per-function coverage of one package
+go test -coverprofile=/tmp/p.cov ./internal/cli/...
+go tool cover -func=/tmp/p.cov
+
+# E2E (on real hardware only)
+BOLTED_E2E=1 go test -count=1 ./internal/backend/lima/...
+
+# The Taskfile target wrap
+task cli:test
+task cli:test:coverage
+```
+
+## What's a "good test" here
+
+The bar that lands in this codebase:
+
+1. **Table-driven where it can be.** Most parsing helpers (`parseSize`, `parseSsOutput`, `formatGB`, `clampRAM`) have a map of inputs to outputs.
+2. **Sentinel-checked, not string-matched.** `errors.Is(err, volume.ErrBadPassword)` not `strings.Contains(err.Error(), "bad password")`. Error messages are for humans; tests match on identity.
+3. **Per-branch.** Every `if err != nil { return err }`, every `default:` in a switch, every `case` should have at least one test that lands in it. The indirection-var pattern is what makes this achievable.
+4. **t.TempDir() for filesystem.** Never `/tmp/foo` or `os.MkdirTemp` with manual cleanup. `t.TempDir()` auto-cleans on test exit.
+5. **t.Cleanup() for state.** Swap a package var? Register a `t.Cleanup(func() { x = orig })` *immediately*, before the actual reassignment, so a panic mid-test still restores it.
+
+<Callout type="warn">
+Tests that aren't deterministic don't belong here. If a test depends on timing, system load, or wall-clock drift, fix the test (usually by injecting a `clockFn`); don't add retries.
+</Callout>
