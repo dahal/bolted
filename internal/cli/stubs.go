@@ -10,9 +10,6 @@ import (
 // stub error includes this pointer so a user (or agent) hitting an
 // unimplemented command knows where to look.
 var stubSpec = map[string]string{
-	"init":      "spec 09",
-	"unlock":    "spec 09",
-	"lock":      "spec 09",
 	"status":    "spec 10",
 	"shell":     "spec 10",
 	"dev":       "spec 13",
@@ -47,9 +44,15 @@ var commandsProvidedByCobra = map[string]bool{
 // stub. Cobra-provided commands are skipped (Cobra adds them automatically).
 func registerSubcommands(root *cobra.Command) {
 	root.AddCommand(newVersionCmd())
+	root.AddCommand(newInitCmd())
+	root.AddCommand(newUnlockCmd())
+	root.AddCommand(newLockCmd())
 
 	implemented := map[string]bool{
 		"version": true,
+		"init":    true,
+		"unlock":  true,
+		"lock":    true,
 	}
 	for _, name := range reservedSubcommands {
 		if implemented[name] || commandsProvidedByCobra[name] {

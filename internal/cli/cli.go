@@ -20,8 +20,10 @@ func Execute(name string, args []string) int {
 	cmd.SetOut(os.Stdout)
 	cmd.SetErr(os.Stderr)
 	if err := cmd.Execute(); err != nil {
-		// Cobra has already rendered the error to stderr.
-		return 1
+		// Cobra has already rendered the error to stderr. Translate
+		// typed errors (e.g. *exitError) into specific exit codes so
+		// scripts can branch on them.
+		return exitCodeFromError(err)
 	}
 	return 0
 }

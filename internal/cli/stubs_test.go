@@ -6,19 +6,21 @@ import (
 )
 
 func TestStubCommand_ReturnsErrorReferencingSpec(t *testing.T) {
-	cmd := newStubCmd("init")
-	if cmd.Use != "init" {
-		t.Errorf("expected Use=init, got %q", cmd.Use)
+	// "dev" is still a stub (spec 13) — once that lands, swap this for
+	// another stubbed command.
+	cmd := newStubCmd("dev")
+	if cmd.Use != "dev" {
+		t.Errorf("expected Use=dev, got %q", cmd.Use)
 	}
-	if !strings.Contains(cmd.Short, "spec 09") {
-		t.Errorf("expected short to mention spec 09, got %q", cmd.Short)
+	if !strings.Contains(cmd.Short, "spec 13") {
+		t.Errorf("expected short to mention spec 13, got %q", cmd.Short)
 	}
 	err := cmd.RunE(cmd, nil)
 	if err == nil {
 		t.Fatal("expected error from stub")
 	}
-	if !strings.Contains(err.Error(), "spec 09") {
-		t.Errorf("expected error to reference spec 09, got: %v", err)
+	if !strings.Contains(err.Error(), "spec 13") {
+		t.Errorf("expected error to reference spec 13, got: %v", err)
 	}
 }
 
