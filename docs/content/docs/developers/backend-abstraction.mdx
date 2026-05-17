@@ -1,0 +1,149 @@
+---
+title: Backend abstraction
+description: The per-OS Backend interface that makes the rest of the codebase OS-agnostic. Lima, WSL2, and the mock that powers all the unit tests.
+icon: Box
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The `Backend` interface in `internal/backend/backend.go` is the seam between everything-above-it (which is pure Go logic, OS-agnostic, fully unit-testable) and everything-below-it (which shells out to `limactl` or `wsl.exe` or `cryptsetup` and only really runs on its target OS).
+
+If you only remember one thing about the architecture, remember this: **every system call against the guest VM goes through `Backend.Exec`.** No `os/exec` calls scattered across the codebase. One choke point.
+
+## The interface
+
+```go
+type Backend interface {
+    EnsureVM(ctx context.Context, spec VMSpec) error
+    StartVM(ctx context.Context) error
+    StopVM(ctx context.Context) error
+    IsRunning(ctx context.Context) (bool, error)
+    Exec(ctx context.Context, cmd []string, opts ExecOpts) (ExecResult, error)
+    ForwardPort(ctx context.Context, guestPort, hostPort int) error
+    UnforwardPort(ctx context.Context, hostPort int) error
+    DeleteVM(ctx context.Context) error
+}
+
+type VMSpec struct {
+    CPUs     int
+    MemoryMB int
+    DiskGB   int
+}
+
+type ExecOpts struct {
+    Cwd   string
+    Env   []string
+    Stdin io.Reader
+    TTY   bool
+}
+
+type ExecResult struct {
+    Stdout   []byte
+    Stderr   []byte
+    ExitCode int
+}
+```
+
+Deliberately small. Eight methods, three supporting types. Anything more elaborate (process streaming, pty handling, multiplexed exec) is out of scope — Exec returns the captured result and the caller writes it where it needs.
+
+## Three implementations
+
+### `internal/backend/lima/` — production on Mac
+
+Shells out to `limactl` via an injectable `runner` interface. The runner's only job is to spawn external processes; tests substitute a `fakeRunner` that records every call and returns canned bytes.
+
+| Method | What it actually runs |
+|---|---|
+| `EnsureVM` | Writes a lima.yaml from `VMSpec` into `~/.bolted/vm/`, runs `limactl create`. Idempotent — if the VM exists per `limactl ls --json`, skips create. |
+| `StartVM` / `StopVM` | `limactl start <name>` / `limactl stop <name>`. |
+| `IsRunning` | Parses `limactl ls --json` (NDJSON), looks for `name == bolted && status == "Running"`. |
+| `Exec` | Wraps the command in `sh -c "cd <cwd> && exec <cmd…>"` for cwd, env-var prefix for env, `limactl shell -t` for TTY. Returns the captured `ExecResult`. |
+| `ForwardPort` | Persists the request into `<dataDir>/portForwards.json` and embeds it into the next `lima.yaml`. Lima's runtime port-forward API has no stable surface across versions, so persistence is the source of truth. |
+| `UnforwardPort` | Removes from the tracking file. |
+| `DeleteVM` | `limactl delete <name> --force`. |
+
+`requireLima()` runs before `EnsureVM` / `StartVM` and prints a clear "install Lima first" error if `limactl` isn't on `$PATH`. It's deliberately not called from every method — unit tests would have to stub `--version` on every call.
+
+### `internal/backend/wsl2/` — production on Windows
+
+Same shape, different tool. Shells out to `wsl.exe` (and `netsh.exe` for portproxy). One twist worth knowing:
+
+**Runtime guard, not build tag.** The package compiles on macOS. `currentGOOS` + `requireWindowsFn` form a runtime check that refuses to start on the wrong OS. This lets the wsl2 backend's unit tests run on the dev host without needing a Windows machine — `requireWindowsFn` is swapped to a no-op for tests.
+
+Other notable bits:
+
+- **UTF-16LE decoder** for `wsl --list` output. Stdlib-only (`encoding/binary` + `unicode/utf16`). No `golang.org/x/text` dep.
+- **`.wslconfig` handling.** WSL2 only honors `%USERPROFILE%\.wslconfig` at the global scope. The backend writes a per-instance hint under `<installDir>/.wslconfig` and warns if a global one already exists. Documented asymmetry; not something we can fix cleanly without overriding the user's global file.
+- **`netsh interface portproxy`** is only invoked when `hostPort != guestPort`. WSL2 auto-bridges loopback, so the common matching-port case is a no-op + persistence-only.
+
+### `internal/backend/mock/` — the unit-test fake
+
+Implements `Backend` by recording every call. Tests configure return values via per-method `ErrXxx` fields and `ExecResult` / `IsRunningResult`:
+
+```go
+m := mock.New()
+m.ExecResult = backend.ExecResult{ExitCode: 0, Stdout: []byte("hello")}
+m.ErrStartVM = errors.New("simulated failure")
+
+// … run code under test that uses m as backend.Backend
+
+// Inspect
+for _, c := range m.Calls {
+    fmt.Println(c.Method, c.Args)
+}
+```
+
+The mock is recording, not behavioural. A `StartVM` doesn't change what `IsRunning` returns; tests configure the answer they expect. This keeps test setup small and the assertion shape explicit ("we expected EnsureVM then StartVM in that order"), but means you can't write a test that drives the mock through "realistic" state transitions. For most cases that's a feature.
+
+## The factory
+
+```go
+// internal/backend/factory/factory.go
+func New(cfg backend.Config) (backend.Backend, error)
+```
+
+Selects the right implementation based on `runtime.GOOS` plus an optional `cfg.Backend` override:
+
+| `cfg.Backend` | `runtime.GOOS` | Result |
+|---|---|---|
+| `""` or `"auto"` | `darwin` | `lima.NewBackend(…)` |
+| `""` or `"auto"` | `windows` | `wsl2.NewBackend(…)` |
+| `""` or `"auto"` | anything else | error: "no backend for <goos>" |
+| `"lima"` | any | `lima.NewBackend(…)` |
+| `"wsl2"` | any | `wsl2.NewBackend(…)` |
+| `"mock"` | any | `mock.New()` |
+| anything else | any | error: "unknown backend %q" |
+
+The override is what makes per-OS code unit-testable. From a darwin dev host, you can drive the wsl2 backend through every code path (`runtimeGOOS` swapped, `requireWindowsFn` neutralised) and the mock's unit tests don't care what OS they're on.
+
+**Why the factory lives in a sub-package** (`internal/backend/factory/`, not `internal/backend/`): the lima and wsl2 packages need to import `backend` for the `VMSpec` / `ExecOpts` / `ExecResult` types in their method signatures. If the factory lived in `backend`, the import would cycle: `backend` → `lima` → `backend`. Sub-package breaks it. This is the only place the cycle would arise; everything else is unidirectional.
+
+## Adding a fourth backend
+
+Hypothetical — say we eventually want a `nspawn` backend for Linux hosts.
+
+1. **New package** `internal/backend/nspawn/`. Implement the `Backend` interface.
+2. **Inject `runtimeGOOS`** if you want to be defensive against being run on the wrong OS — same pattern as wsl2's `currentGOOS`.
+3. **Add the case to the factory** (`internal/backend/factory/factory.go`):
+   ```go
+   case backend.BackendNspawn:
+       return nspawn.NewBackend(…), nil
+   ```
+4. **`internal/backend/config.go`** — add `BackendNspawn = "nspawn"` to the constants.
+5. **Auto-detection** in the factory (`case runtimeGOOS == "linux"`) — only after the nspawn backend is real, otherwise the `auto` selection picks something that doesn't work.
+6. **Unit tests** for the new backend at 100% via injected runner. Production verification through `BOLTED_E2E=1` on a real Linux host.
+
+Adding a backend is a self-contained spec. The orchestration packages above don't change; only the factory grows by one branch.
+
+## What's NOT in the Backend interface
+
+A few things you might expect to be there but aren't, with reasoning:
+
+- **No streaming exec.** `Backend.Exec` is sync; it returns when the command finishes. For long-running logs (`bolt logs -f`), the caller polls `podman logs -f` and tees the captured stdout/stderr — we don't expose a `ReadCloser`. Pros: tiny surface. Cons: not great for unbounded streams; revisit if it bites.
+- **No filesystem methods.** No `ReadFile` / `WriteFile`. Everything goes through `Exec` (typically `cat <path>` / `tee <path>`). Keeps the interface tight. Specs that need to move bytes (`bolt export`, `bolt import`, devcontainer config hashing) just shell out via `Exec`.
+- **No "is the Bolted volume mounted?" probe.** Each consumer that needs this does its own probe (typically `Backend.Exec(ctx, []string{"test", "-d", "/bolted/repos"}, …)` and checks `ExecResult.ExitCode`). A shared helper would be nice; it hasn't surfaced as a real pain point.
+- **No bulk-port-forward API.** `ForwardPort` is one port at a time. `internal/portforward.Manager` is the higher-level abstraction that calls it in a loop. Keeping the backend dumb is the point.
+
+<Callout>
+The Backend interface is the most stable part of the codebase — nine specs depend on it. Changes here ripple everywhere. Adding fields to `VMSpec` or `ExecOpts` is fine (it's additive); changing method signatures is a real coordination problem. If you need a new capability, prefer adding a sibling method (`Backend.Snapshot`) over expanding `Exec`.
+</Callout>
