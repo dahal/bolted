@@ -1,0 +1,163 @@
+---
+title: Architecture
+description: The layered system — CLI → orchestration → backend → guest VM. Where each Go package lives and what it owns.
+icon: Layers
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## The four layers
+
+Reading top-to-bottom = what a user types, going outward. Reading bottom-to-top = how a command actually runs.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  1. CLI surface                                          │
+│     Bolted / `bolt` binary, Cobra command tree        │
+│     internal/cli/                                        │
+├──────────────────────────────────────────────────────────┤
+│  2. Orchestration                                        │
+│     Lifecycle (init/unlock/lock), per-repo dev flows,    │
+│     provisioning, trust gating, port allocation          │
+│     internal/{volume,devcontainer,provision,             │
+│       devcontainertrust,portforward,boltednet,        │
+│       keychain,profiles,config,state,hostinfo}/          │
+├──────────────────────────────────────────────────────────┤
+│  3. Backend abstraction                                  │
+│     The Backend interface — every system call against    │
+│     the guest VM goes through here                       │
+│     internal/backend/, factory/, lima/, wsl2/, mock/     │
+├──────────────────────────────────────────────────────────┤
+│  4. Guest VM                                             │
+│     Alpine Linux + podman + cryptsetup + base tools      │
+│     vm-image/                                            │
+└──────────────────────────────────────────────────────────┘
+```
+
+Each layer only talks to the one immediately below. CLI commands never call `os/exec` directly to drive `cryptsetup`; they go through `internal/volume`, which goes through `Backend.Exec`, which goes through `internal/backend/lima` (or `wsl2`), which actually shells out.
+
+The point of the abstraction isn't elegance — it's **testability**. Every layer above `Backend` is unit-testable with the mock backend (`internal/backend/mock`). No real VM, no real `cryptsetup`, no real `podman` needed for 100% of the unit tests. The real backends are validated by integration tests gated behind `BOLTED_E2E=1` on actual Mac / Windows hardware.
+
+## Layer 1 — CLI (`internal/cli/`)
+
+One file per command. The CLI is Cobra-based, with `argv[0]` detection so the same binary serves both `bolt` invocations with the right help text.
+
+| File | Owns |
+|---|---|
+| `cli.go` | `Execute` entrypoint, `isPassthrough` pre-router, exit-code translation |
+| `root.go` | Cobra root command, `--log-level` flag, slog wiring |
+| `reserved.go` | The single source of truth for reserved subcommand names |
+| `stubs.go` | Per-command `newXCmd()` registration; stubs for unimplemented names |
+| `lifecycle.go` | `bolt init`, `bolt unlock`, `bolt lock` orchestration + shared indirection vars |
+| `dev_cmd.go` | `bolt dev`; also hosts shared helpers (requireUnlockedBackend, requireRepo, containers.json reader/writer, trust gate) used by `exec`/`stop`/`ls`/`rm` |
+| `passthrough.go` | The `bolt <anything>` router (when first arg isn't reserved) |
+| `password.go` | `passwordPrompter` interface + TTY no-echo reader |
+| ...and one file per command (`status_cmd.go`, `provision_cmd.go`, etc.) | The command's body, flags, and tests |
+
+Two conventions worth knowing up front:
+
+- **Indirection vars** for every external dependency. `newBackendFn`, `loadConfigFn`, `newRunnerFn`, `trustGateFn`, etc. Tests reassign them. See [Patterns](/docs/developers/patterns).
+- **`exitError`** carries a specific exit code through Cobra's error path so scripts can branch on locked-vs-bad-password-vs-generic.
+
+## Layer 2 — Orchestration packages
+
+Each one owns a vertical slice of behaviour. None talk to each other directly except through interfaces, and each one is mockable so commands that compose them can be unit-tested in isolation.
+
+| Package | Owns | Notes |
+|---|---|---|
+| `internal/config` | `config.yaml` schema, `BoltedDir()`, `Load`/`Save`, size/path validation | Atomic? `Save` is intentionally non-atomic (human-edited file). State files use `internal/state`. |
+| `internal/state` | Generic atomic JSON read/write for state files (containers.json, ports.json, etc.) | Tempfile + fsync + rename pattern. Deferred cleanup on failure. |
+| `internal/hostinfo` | Cross-platform host RAM/CPU detection + the auto-sizing formula | OS-specific files behind build tags; `golang.org/x/sys` for the syscalls. |
+| `internal/volume` | LUKS2 lifecycle (Create/Open/Mount/Unmount/Close, key-slot management) | Shells out to `cryptsetup` inside the VM via `Backend.Exec`. Passwords pass via stdin, never argv. |
+| `internal/devcontainer` | Wraps the `devcontainer` CLI; `Runner.Up`/`Down`/`Exec`/`Build` | Install-on-first-use of `@devcontainers/cli`, default-devcontainer.json fallback, container-name uniqueness check. |
+| `internal/devcontainertrust` | Hash + approve `.devcontainer/devcontainer.json` per repo | Raw-bytes hash so whitespace edits still re-prompt. Non-TTY without `--trust` refuses. |
+| `internal/portforward` | Detect bound ports inside containers, allocate host ports, persist mappings | `ss -tlnp` parser handles busybox + iproute2 variants; allocator falls back through `[requested+1, requested+100]`. |
+| `internal/boltednet` | The shared `bolted-net` podman network for inter-repo DNS | Ensure/Exists/Delete; integration into Up via `UpOpts.NetworkName`. |
+| `internal/provision` | `bolted.yaml` schema, `Apply` driver, drift `Check`, `FetchYAML` | Dotfiles installed via `Backend.Exec` with stdin piped; feature removal is `rm -rf` (devcontainer CLI has no uninstall). |
+| `internal/profiles` | Vendored starter `bolted.yaml` files (minimal/fullstack/data/mobile) | `go:embed`-backed; round-tripped through `provision.BoltedProfile` in tests so a malformed embedded yaml fails CI. |
+| `internal/keychain` | OS keychain wrapper for the Bolted password (opt-in) | macOS: `security` CLI. Windows: `cmdkey` (write-only — Get always errors). Other: noop. |
+| `internal/buildinfo` | Version/commit string for `bolt version` | ldflags injection with a runtime/debug fallback for `go run`. |
+
+## Layer 3 — Backend abstraction (`internal/backend/`)
+
+The `Backend` interface is the seam between OS-agnostic and OS-specific code:
+
+```go
+type Backend interface {
+    EnsureVM(ctx context.Context, spec VMSpec) error
+    StartVM(ctx context.Context) error
+    StopVM(ctx context.Context) error
+    IsRunning(ctx context.Context) (bool, error)
+    Exec(ctx context.Context, cmd []string, opts ExecOpts) (ExecResult, error)
+    ForwardPort(ctx context.Context, guestPort, hostPort int) error
+    UnforwardPort(ctx context.Context, hostPort int) error
+    DeleteVM(ctx context.Context) error
+}
+```
+
+Three implementations:
+
+- **`internal/backend/lima/`** — production backend on Mac. Shells out to `limactl`. Lima.yaml templating, NDJSON parsing of `limactl ls`, persisted port-forward requests (Lima's runtime port-forward API has no stable surface across versions).
+- **`internal/backend/wsl2/`** — production backend on Windows. Shells out to `wsl.exe` + `netsh.exe`. UTF-16LE decoder for `wsl --list` output (stdlib-only). Runtime (not build-tag) Windows guard so the package compiles on macOS for unit testing.
+- **`internal/backend/mock/`** — recording fake used by every other package's tests. Returns canned `ExecResult` per method, records every call for assertions.
+
+The factory (`internal/backend/factory/`) selects the right impl based on `runtime.GOOS` plus a `Config.Backend` override (`"auto"`/`"lima"`/`"wsl2"`/`"mock"`). It lives in a sub-package to avoid an import cycle — the per-OS backends need to reference `backend.VMSpec` and friends.
+
+See [Backend abstraction](/docs/developers/backend-abstraction) for deeper coverage.
+
+## Layer 4 — Guest VM (`vm-image/`)
+
+Alpine 3.20 + exactly six tools: `podman`, `cryptsetup`, `git`, `openssh`, `bash`, `curl`. The image is built once (`task vm:build`) and published to GHCR; each backend imports it into its hypervisor on `EnsureVM`.
+
+The VM image deliberately contains *no* language toolchains. Those live in two later layers:
+
+1. **`bolted.yaml`** — per-user Bolted profile (gh, gcloud, kubectl, ripgrep). Installed by `bolt provision` using the devcontainer features ecosystem.
+2. **`.devcontainer/devcontainer.json`** — per-repo project toolchain (node@20, ruby@3.3). Installed by the devcontainer CLI on `bolt dev`.
+
+The split keeps the base image tiny (≤200 MB Lima qcow2 compressed), and means rebuilding the VM image is rare; toolchain churn happens entirely in `bolt provision` and per-repo dev containers.
+
+## Request flow — `bolt git clone <url>`
+
+A concrete example end-to-end:
+
+1. `cmd/bolt/main.go` reads `os.Args`, detects invoked name (`bolt`), calls `cli.Execute("bolt", os.Args[1:])`.
+2. `cli.Execute` runs `isPassthrough` — `git` is not in `reservedSubcommands`, so the passthrough branch fires.
+3. `passthroughRun`:
+   - Loads config, picks the backend via the factory.
+   - Probes whether Bolted is unlocked: `Backend.Exec(ctx, ["test", "-d", "/bolted/repos"])`. Non-zero exit → exit 2 with "run `bolt unlock` first".
+   - Detects whether host stdin is a TTY (`isTerminalFn`) — sets `ExecOpts.TTY` accordingly.
+   - Builds `ExecOpts{Cwd: "/bolted/repos", Stdin: os.Stdin, TTY: ttyFlag}` and calls `Backend.Exec(ctx, ["git", "clone", url], opts)`.
+4. The Lima backend runs `limactl shell bolted -- sh -c "cd /bolted/repos && exec git clone <url>"`, capturing stdout/stderr.
+5. `passthroughRun` writes the captured streams to the host terminal and returns `ExecResult.ExitCode` wrapped in an `exitError`.
+6. `cli.Execute` unwraps the `exitError`, returns its code; `main` calls `os.Exit` with it.
+
+Every step except #4 is unit-testable against the mock backend. Step 4 is integration-tested behind `BOLTED_E2E=1` on a real Mac with Lima installed.
+
+## Request flow — `bolt dev <repo>`
+
+The more complex path, for contrast:
+
+1. CLI dispatch → `newDevCmd().RunE` → `runDev`.
+2. `requireUnlockedBackend` — config exists, backend reachable, VM running, `/bolted/repos` mountable.
+3. `requireRepo` — `test -d /bolted/repos/<repo>` via `Backend.Exec`. Missing → exit 5.
+4. **Trust gate** (`trustGateFn`): `devcontainertrust.HashConfig` reads the repo's `devcontainer.json` via `Backend.Exec("cat …")`, computes SHA-256. If the hash isn't in `~/.bolted/state/devcontainer-trust.json`, prompt the user (or `--trust` to auto-approve). Reject → return error.
+5. `newRunnerFn(b, devcontainer.Options{})` constructs the devcontainer runner.
+6. Read `containers.json`: if there's no recorded container ID for this repo, call `runner.Up` (which shells `devcontainer up --docker-path=podman …` via `Backend.Exec`), parse the returned container ID, persist it.
+7. If `--detach`: print "container is running" and exit. If trailing `-- <cmd>`: `runner.Exec(containerID, cmd)`, exit with its code. Otherwise: `runner.Exec(containerID, [shell], ExecOpts{TTY: true, Stdin: os.Stdin})` to attach.
+
+Steps 4, 6, and 7 are testable via `withRunnerStub` + `trustGateFn` substitution. The full flow is integration-tested behind `BOLTED_E2E=1`.
+
+## Where the seams aren't perfect
+
+A few honest tensions to know about:
+
+- **`portforward.Manager.DetectAndForward` isn't yet called from `runDev`.** The package exists and is 100% tested; `bolt ports` / `bolt forward` / `bolt unforward` work; only the auto-detection-on-dev wire is missing. Documented at the top of `internal/portforward/portforward.go`.
+- **`boltednet.Ensure` isn't yet called from `runDev`.** Same shape — package exists, `UpOpts.NetworkName` is wired through `devcontainer.Up`, only the call site in `runDev` is missing.
+- **The factory sub-package** (`internal/backend/factory/`) feels indirect but exists to break the `lima → backend → factory → lima` import cycle. Adding a fourth backend follows the same shape.
+- **Container shutdown on `bolt lock`** is currently a `// TODO(spec-13)` in `lifecycle.go`. Containers keep running across lock cycles, which is fine — they live in the VM, which can stop independently — but a clean lock should ideally stop them too.
+
+These are documented as TODOs in the relevant source files, not pretended away.
+
+<Callout>
+Curious about why a specific decision was made? The reasoning lives in `.claude/brainstorm/` in the repo — not on this site, since it's design history rather than current truth. The spec files at `specs/<NN>-*.md` are the bridge: each one cites the brainstorm sections it derives from.
+</Callout>
