@@ -1,0 +1,166 @@
+---
+title: Contributing
+description: The brainstorm → spec → implementation → docs workflow, how to build / test / release locally, and what reviewers look for.
+icon: GitBranch
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## The four-layer workflow
+
+```
+.claude/brainstorm/   →   specs/   →   internal/, cmd/, vm-image/   →   docs/
+   why                    what            how                            what shipped
+   design history        actionable      the implementation              user reference
+                         work queue
+```
+
+Each layer feeds the next:
+
+1. **`.claude/brainstorm/`** — design exploration. Tradeoffs surfaced, options compared, the "why" captured in prose. Lives outside the public repo (it's in `.claude/` which is gitignored except for the brainstorm subdirectory) because it's history, not current truth. Reading this is how you understand *why* a decision was made.
+2. **`specs/NN-title.md`** — the actionable plan. Status frontmatter (`ready` / `in-progress` / `done`), priority (P0 / P1 / P2), `depends-on` list. Each spec is self-contained with Goal / Scope / Non-goals / Acceptance criteria / References.
+3. **Implementation** — `internal/`, `cmd/`, `vm-image/`. The code that satisfies the spec. Test coverage at 100% (per-function) is the bar.
+4. **`docs/`** — user-facing reference. Updated *in the same change* as the feature ships, not later.
+
+If you're adding something new, you write the brainstorm first (or read the existing one), then a spec, then implementation + tests + docs. If you're fixing a bug, you might skip brainstorm and write a small spec or jump straight to the fix — judgment call.
+
+## Picking up a spec
+
+The pickup rule (documented in `specs/CLAUDE.md`):
+
+1. Filter to `status: ready`.
+2. Pick the highest priority (P0 → P1 → P2).
+3. Within the same priority, lowest ID first.
+4. Only pick a spec whose `depends-on` are all `done`.
+5. On pickup, flip the frontmatter to `status: in-progress` immediately so no one else double-claims it.
+
+Open `specs/README.md` for the live index with status and dependency columns.
+
+## Local setup
+
+You'll need:
+
+- **Go 1.26+** (the module pins it via `go.mod`).
+- **Bun** for the docs site (`cd docs && bun install`).
+- **Task** (`brew install go-task/tap/go-task` or equivalent) — every common workflow has a Taskfile target.
+- Optional but useful: **Lima** on Mac (`brew install lima`) and **WSL2** on Windows for running e2e tests.
+
+```sh
+# Clone, build, test
+git clone git@github.com:dahal/bolted.git
+cd bolted
+task install        # docs dependencies
+task build          # CLI + docs
+task test           # unit tests (no real backends required)
+task lint           # go vet + oxlint
+```
+
+## The Taskfile
+
+`task --list` shows everything. The ones you'll use day to day:
+
+| Task | What it does |
+|---|---|
+| `task build` | Build everything (CLI + docs). |
+| `task cli:build` | Just the CLI binary into `./dist/`. Creates a `bolt` symlink next to it. |
+| `task cli:install` | `go install` into `$GOBIN` + create the `bolt` symlink. |
+| `task cli:test` | `go test ./...` |
+| `task cli:test:coverage` | Same with `-cover` summary. |
+| `task cli:lint` | `go vet ./...` |
+| `task docs:dev` | Start the docs site at `localhost:3000` with hot reload. |
+| `task docs:build` | Production docs build. |
+| `task docs:check` | TypeScript + MDX type check. |
+| `task vm:build` | Build the VM image (Lima qcow2 + WSL2 rootfs tar). Needs Docker + `qemu-img`. |
+| `task cli:build:all` | Cross-compile all three targets (darwin-arm64, darwin-amd64, windows-amd64). |
+| `task release` | Build all + compute SHA256SUMS + print next steps. Does NOT upload. |
+
+## File ownership
+
+The codebase is organised so each spec owns a tight set of files. When you implement a spec, **don't drift outside its scope** — other agents may be in flight on adjacent specs, and a central integration step pulls everything together. Specifically:
+
+- **`internal/cli/stubs.go`** is integration-only. New commands add their constructor (`newXCmd`) in their own file (`internal/cli/x_cmd.go`); `stubs.go` is updated centrally once.
+- **`internal/cli/lifecycle.go`** has the shared indirection vars (`newBackendFn`, `loadConfigFn`, …). Don't redeclare them in another file — import and reuse.
+- **`internal/cli/dev_cmd.go`** has the lifecycle helpers used by every per-repo command (`requireUnlockedBackend`, `requireRepo`, `stateDirFn`, `newRunnerFn`, `trustGateFn`). Same rule.
+- **`docs/src/lib/shared.ts`** holds the app name and Git config; rarely edited.
+- **`go.mod`** — `go get` only what your spec actually needs. The dep list is intentionally small.
+
+## What goes through code review
+
+In rough priority order:
+
+1. **The spec is satisfied.** Acceptance criteria are concrete; either every one is met or there's an explicit "deferred to spec NN" note with a TODO in the code.
+2. **Tests at 100% per-function coverage** for any new internal package. Existing packages may not regress. If 100% needs an indirection var, add it; don't ship "this branch is unreachable" comments.
+3. **No drift outside the spec's scope.** If you need to change another file, that's a separate PR or an explicit note in the description.
+4. **Conventions followed.** See [Code patterns](/docs/developers/patterns). Indirection vars where appropriate, sentinel errors with `%w` wrapping, accept-interfaces, narrow per-consumer interfaces.
+5. **Docs updated.** If the feature has user-visible behaviour, the relevant page in `docs/content/docs/` is updated in the same PR. New CLI command → new `commands/<name>.mdx`. New concept → consider whether it belongs in `concepts/` or `developers/`.
+6. **Frontmatter flipped.** The spec's `status:` is set to `done` (or back to `ready` if you backed out).
+7. **`go vet` and `bun run types:check` pass.** CI enforces these.
+
+What reviewers will *not* block on:
+
+- Code style fights that `gofmt` and `oxlint` don't already settle.
+- Coverage strictly below 100% if there's a documented reason (e.g., the `main()` function in `cmd/bolt`).
+- Whether you used Cards vs. inline links in docs — match the local style.
+
+## Adding a new spec
+
+1. Pick the next free ID (look at `specs/README.md`).
+2. Add the file: `specs/NN-short-title.md` with the standard frontmatter:
+
+   ```yaml
+   ---
+   status: draft        # bump to `ready` when it's actionable
+   priority: P0 | P1 | P2
+   depends-on: [NN, NN]
+   ---
+   ```
+
+3. Sections: Goal / Scope / Non-goals / Acceptance criteria / References.
+4. Update `specs/README.md` to add a row in the index table.
+5. Link to relevant brainstorm sections in References so the reasoning is one click away.
+
+If you're not sure whether something deserves a new spec or fits inside an existing one, lean toward a new spec — they're cheap and easier to track.
+
+## Adding a new command
+
+Mechanically, every shipped command follows the same shape:
+
+1. **New file** `internal/cli/<name>_cmd.go` exporting `func newXxxCmd() *cobra.Command`. Cobra command body, flag wiring, `runXxx` that does the actual work.
+2. **Reuse existing indirection vars** for backend / config / volume / runner / etc.
+3. **New file** `internal/cli/<name>_cmd_test.go` with 100% per-function coverage.
+4. **Update `internal/cli/stubs.go`**: add `root.AddCommand(newXxxCmd())` in the right grouped section, add `"xxx": true` to the `implemented` map, remove from `stubSpec` map.
+5. **Add to the reserved-subcommands list** if it's a new name (`internal/cli/reserved.go`).
+6. **New doc page** `docs/content/docs/commands/<name>.mdx` with frontmatter, synopsis, flags, examples, exit codes.
+
+`status` and `lock` are good templates to copy.
+
+## Adding a new internal package
+
+Same shape as a new command, plus:
+
+1. **`internal/<thing>/<thing>.go`** with the public API. Doc comment on the package.
+2. **Sentinel errors** (`ErrXyz`) for any failure category callers might want to recognise.
+3. **Indirection vars** for external calls — see [Code patterns](/docs/developers/patterns).
+4. **`internal/<thing>/<thing>_test.go`** with 100% statement coverage.
+5. **If it talks to a real backend**, also `internal/<thing>/<thing>_e2e_test.go` gated by `BOLTED_E2E=1`.
+
+## Releases
+
+Tagged releases trigger `.github/workflows/release.yml`:
+
+1. Tag with `vX.Y.Z` (semver). Pushed to GitHub.
+2. The release workflow cross-compiles all three targets, computes SHA256SUMS, attaches everything to a draft GitHub Release.
+3. Manually review the draft and publish when happy.
+
+For VM image releases (`vm-X.Y.Z` tags), it's currently manual: `task vm:build` then `task vm:publish` against the GHCR registry.
+
+<Callout>
+The release pipeline is intentionally manual at the final step. Drafts are auto-created; publishing is human-gated until we have a real release cadence and signing story.
+</Callout>
+
+## What to read next
+
+- [Code patterns](/docs/developers/patterns) — the conventions you'll write code against.
+- [Testing strategy](/docs/developers/testing) — what 100% coverage means here.
+- [Architecture](/docs/developers/architecture) — the layered system and where each package lives.
+- `specs/README.md` — the live work queue.
