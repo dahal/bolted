@@ -10,15 +10,9 @@ import (
 // stub error includes this pointer so a user (or agent) hitting an
 // unimplemented command knows where to look.
 var stubSpec = map[string]string{
-	"dev":       "spec 13",
-	"exec":      "spec 13",
-	"stop":      "spec 13",
-	"ls":        "spec 13",
-	"rm":        "spec 13",
 	"ports":     "spec 14",
 	"forward":   "spec 20",
 	"unforward": "spec 20",
-	"provision": "spec 15",
 	"profiles":  "spec 16",
 	"trust":     "spec 18",
 	"logs":      "spec 20",
@@ -47,16 +41,28 @@ func registerSubcommands(root *cobra.Command) {
 	root.AddCommand(newShellCmd())
 	root.AddCommand(newPasswdCmd())
 	root.AddCommand(newKeychainCmd())
+	root.AddCommand(newDevCmd())
+	root.AddCommand(newExecCmd())
+	root.AddCommand(newStopCmd())
+	root.AddCommand(newLsCmd())
+	root.AddCommand(newRmCmd())
+	root.AddCommand(newProvisionCmd())
 
 	implemented := map[string]bool{
-		"version":  true,
-		"init":     true,
-		"unlock":   true,
-		"lock":     true,
-		"status":   true,
-		"shell":    true,
-		"passwd":   true,
-		"keychain": true,
+		"version":   true,
+		"init":      true,
+		"unlock":    true,
+		"lock":      true,
+		"status":    true,
+		"shell":     true,
+		"passwd":    true,
+		"keychain":  true,
+		"dev":       true,
+		"exec":      true,
+		"stop":      true,
+		"ls":        true,
+		"rm":        true,
+		"provision": true,
 	}
 	for _, name := range reservedSubcommands {
 		if implemented[name] || commandsProvidedByCobra[name] {

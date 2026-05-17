@@ -6,21 +6,21 @@ import (
 )
 
 func TestStubCommand_ReturnsErrorReferencingSpec(t *testing.T) {
-	// "dev" is still a stub (spec 13) — once that lands, swap this for
-	// another stubbed command.
-	cmd := newStubCmd("dev")
-	if cmd.Use != "dev" {
-		t.Errorf("expected Use=dev, got %q", cmd.Use)
+	// "forward" is still a stub (spec 20) — once that lands, swap this
+	// for another stubbed command from stubSpec.
+	cmd := newStubCmd("forward")
+	if cmd.Use != "forward" {
+		t.Errorf("expected Use=forward, got %q", cmd.Use)
 	}
-	if !strings.Contains(cmd.Short, "spec 13") {
-		t.Errorf("expected short to mention spec 13, got %q", cmd.Short)
+	if !strings.Contains(cmd.Short, "spec 20") {
+		t.Errorf("expected short to mention spec 20, got %q", cmd.Short)
 	}
 	err := cmd.RunE(cmd, nil)
 	if err == nil {
 		t.Fatal("expected error from stub")
 	}
-	if !strings.Contains(err.Error(), "spec 13") {
-		t.Errorf("expected error to reference spec 13, got: %v", err)
+	if !strings.Contains(err.Error(), "spec 20") {
+		t.Errorf("expected error to reference spec 20, got: %v", err)
 	}
 }
 
@@ -39,7 +39,9 @@ func TestRegisterSubcommands_EveryReservedNamePresent(t *testing.T) {
 	root := newRootCmd("bolt")
 	registered := make(map[string]bool)
 	for _, c := range root.Commands() {
-		registered[c.Use] = true
+		// cmd.Use can include argument annotations (e.g. "dev <repo>").
+		// cmd.Name() returns just the leading word.
+		registered[c.Name()] = true
 	}
 	for _, name := range reservedSubcommands {
 		if commandsProvidedByCobra[name] {
