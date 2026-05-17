@@ -108,7 +108,7 @@ Selects the right implementation based on `runtime.GOOS` plus an optional `cfg.B
 |---|---|---|
 | `""` or `"auto"` | `darwin` | `lima.NewBackend(…)` |
 | `""` or `"auto"` | `windows` | `wsl2.NewBackend(…)` |
-| `""` or `"auto"` | anything else | error: "no backend for <goos>" |
+| `""` or `"auto"` | anything else | error: `no backend for <goos>` |
 | `"lima"` | any | `lima.NewBackend(…)` |
 | `"wsl2"` | any | `wsl2.NewBackend(…)` |
 | `"mock"` | any | `mock.New()` |
