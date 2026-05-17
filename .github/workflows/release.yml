@@ -1,0 +1,63 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish draft release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Cross-compile binaries
+        env:
+          VERSION: ${{ github.ref_name }}
+          COMMIT: ${{ github.sha }}
+          LDFLAGS_PREFIX: -X github.com/dahal/bolted/internal/buildinfo
+        run: |
+          set -euo pipefail
+          mkdir -p dist/darwin-arm64 dist/darwin-amd64 dist/windows-amd64
+          LDFLAGS="${LDFLAGS_PREFIX}.Version=${VERSION} ${LDFLAGS_PREFIX}.Commit=${COMMIT}"
+
+          GOOS=darwin  GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o dist/darwin-arm64/bolt        ./cmd/bolt
+          GOOS=darwin  GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o dist/darwin-amd64/bolt        ./cmd/bolt
+          GOOS=windows GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o dist/windows-amd64/bolt.exe   ./cmd/bolt
+
+      - name: Package release artifacts
+        run: |
+          set -euo pipefail
+          cd dist
+          tar -czf "bolted-${GITHUB_REF_NAME}-darwin-arm64.tar.gz" -C darwin-arm64 bolt
+          tar -czf "bolted-${GITHUB_REF_NAME}-darwin-amd64.tar.gz" -C darwin-amd64 bolt
+          (cd windows-amd64 && zip -q "../bolted-${GITHUB_REF_NAME}-windows-amd64.zip" bolt.exe)
+          shasum -a 256 \
+            "bolted-${GITHUB_REF_NAME}-darwin-arm64.tar.gz" \
+            "bolted-${GITHUB_REF_NAME}-darwin-amd64.tar.gz" \
+            "bolted-${GITHUB_REF_NAME}-windows-amd64.zip" \
+            > SHA256SUMS
+          ls -la
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/bolt-${{ github.ref_name }}-darwin-arm64.tar.gz
+            dist/bolt-${{ github.ref_name }}-darwin-amd64.tar.gz
+            dist/bolt-${{ github.ref_name }}-windows-amd64.zip
+            dist/SHA256SUMS

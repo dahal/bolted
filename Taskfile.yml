@@ -128,3 +128,42 @@ tasks:
     cmds:
       - docker tag bolted-vm:vm-1.0.0 {{.IMAGE_REF}}
       - docker push {{.IMAGE_REF}}
+
+  cli:build:all:
+    desc: Cross-compile the Bolted CLI for darwin/arm64, darwin/amd64, and windows/amd64 into ./dist/<os>-<arch>/
+    cmds:
+      - mkdir -p dist/darwin-arm64 dist/darwin-amd64 dist/windows-amd64
+      - >-
+        GOOS=darwin GOARCH=arm64 go build
+        -ldflags "-X github.com/dahal/bolted/internal/buildinfo.Version={{.VERSION}}
+        -X github.com/dahal/bolted/internal/buildinfo.Commit={{.COMMIT}}"
+        -o dist/darwin-arm64/bolt ./cmd/bolt
+      - >-
+        GOOS=darwin GOARCH=amd64 go build
+        -ldflags "-X github.com/dahal/bolted/internal/buildinfo.Version={{.VERSION}}
+        -X github.com/dahal/bolted/internal/buildinfo.Commit={{.COMMIT}}"
+        -o dist/darwin-amd64/bolt ./cmd/bolt
+      - >-
+        GOOS=windows GOARCH=amd64 go build
+        -ldflags "-X github.com/dahal/bolted/internal/buildinfo.Version={{.VERSION}}
+        -X github.com/dahal/bolted/internal/buildinfo.Commit={{.COMMIT}}"
+        -o dist/windows-amd64/bolt.exe ./cmd/bolt
+    vars:
+      VERSION:
+        sh: git describe --tags --always --dirty 2>/dev/null || echo "(devel)"
+      COMMIT:
+        sh: git rev-parse HEAD 2>/dev/null || echo unknown
+
+  release:
+    desc: Cross-compile all targets and compute SHA256SUMS in ./dist (does NOT upload)
+    deps: [cli:build:all]
+    cmds:
+      - cd dist && find darwin-arm64 darwin-amd64 windows-amd64 -type f \( -name 'bolt' -o -name 'bolt.exe' \) | sort | xargs shasum -a 256 > SHA256SUMS
+      - echo ""
+      - echo "Built artifacts in ./dist/:"
+      - ls -1 dist/darwin-arm64/bolt dist/darwin-amd64/bolt dist/windows-amd64/bolt.exe dist/SHA256SUMS
+      - echo ""
+      - echo "Next steps:"
+      - echo "  1. Tag the release      git tag vX.Y.Z && git push origin vX.Y.Z"
+      - echo "  2. The release workflow will rebuild + publish a draft GitHub Release"
+      - echo "  3. Review the draft at https://github.com/dahal/bolted/releases and publish when ready"
