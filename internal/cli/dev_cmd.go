@@ -22,6 +22,7 @@ import (
 	"github.com/dahal/bolted/internal/backend"
 	"github.com/dahal/bolted/internal/config"
 	"github.com/dahal/bolted/internal/devcontainer"
+	"github.com/dahal/bolted/internal/devcontainertrust"
 	"github.com/dahal/bolted/internal/state"
 )
 
@@ -32,6 +33,47 @@ import (
 // just calls devcontainer.New.
 var newRunnerFn = func(b backend.Backend, opts devcontainer.Options) devcontainer.Runner {
 	return devcontainer.New(b, opts)
+}
+
+// trustGateFn is the seam for the spec-18 devcontainer trust gate. It
+// runs before any devcontainer Up. If the repo's .devcontainer/devcontainer.json
+// has changed (or was never approved), it prompts the user; --trust
+// auto-approves without prompting.
+//
+// Tests stub this to a no-op via withRunnerStub so the existing dev/exec
+// flows aren't forced through an interactive prompt.
+var trustGateFn = realTrustGate
+
+// confirmTrustFn is the injectable Confirm prompt. The real one
+// requires an interactive TTY; tests substitute it.
+var confirmTrustFn = devcontainertrust.Confirm
+
+// realTrustGate is the production implementation. Returns nil when the
+// repo has no devcontainer.json (nothing to gate) or when the current
+// hash is already approved.
+func realTrustGate(_ context.Context, b backend.Backend, repo, repoFullPath string, stdin io.Reader, stderrW io.Writer, autoApprove bool) error {
+	hash, summary, err := devcontainertrust.HashConfig(b, repoFullPath)
+	if err != nil {
+		if errors.Is(err, devcontainertrust.ErrNoConfig) {
+			return nil // nothing to gate
+		}
+		return fmt.Errorf("hash devcontainer config: %w", err)
+	}
+	store := devcontainertrust.NewStore(stateDirFn())
+	if store.Approved(repo, hash) {
+		return nil
+	}
+	if autoApprove {
+		return store.Approve(repo, hash)
+	}
+	ok, err := confirmTrustFn(stdin, stderrW, summary)
+	if err != nil {
+		return fmt.Errorf("trust confirm: %w", err)
+	}
+	if !ok {
+		return errors.New("devcontainer.json not approved (run `bolt trust <repo>` to approve)")
+	}
+	return store.Approve(repo, hash)
 }
 
 // stateDirFn returns the directory holding the JSON state files
@@ -227,6 +269,7 @@ func runningContainerIDs(ctx context.Context, b backend.Backend) (map[string]boo
 
 type devOptions struct {
 	detach bool
+	trust  bool
 }
 
 func newDevCmd() *cobra.Command {
@@ -250,6 +293,7 @@ func newDevCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVarP(&opts.detach, "detach", "d", false, "Start the container without attaching a shell")
+	cmd.Flags().BoolVar(&opts.trust, "trust", false, "Auto-approve the repo's devcontainer.json without prompting (spec 18)")
 	return cmd
 }
 
@@ -259,6 +303,12 @@ func runDev(ctx context.Context, stdout, stderr io.Writer, repo string, command 
 		return err
 	}
 	if err := requireRepo(ctx, b, stderr, repo); err != nil {
+		return err
+	}
+
+	// Spec 18 — gate on devcontainer.json approval before any Up. The
+	// gate is a no-op for repos without .devcontainer/devcontainer.json.
+	if err := trustGateFn(ctx, b, repo, repoPath(repo), stdinFn(), stderr, opts.trust); err != nil {
 		return err
 	}
 

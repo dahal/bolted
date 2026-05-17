@@ -17,7 +17,7 @@ import (
 // ---- runExec --------------------------------------------------------------
 
 func TestRunExec_EmptyCommand(t *testing.T) {
-	err := runExec(context.Background(), io.Discard, io.Discard, "api", nil)
+	err := runExec(context.Background(), io.Discard, io.Discard, "api", nil, execOptions{})
 	if err == nil || !strings.Contains(err.Error(), "no command") {
 		t.Errorf("expected no-command error, got %v", err)
 	}
@@ -27,7 +27,7 @@ func TestRunExec_RequireUnlockedFails(t *testing.T) {
 	s := &lifecycleStubs{}
 	s.install(t)
 	withStatStub(t, statMissing)
-	err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"})
+	err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"}, execOptions{})
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -41,7 +41,7 @@ func TestRunExec_RepoNotFound(t *testing.T) {
 		{ExitCode: 0}, // unlocked
 		{ExitCode: 1}, // test -d
 	}, nil)
-	err := runExec(context.Background(), io.Discard, io.Discard, "missing", []string{"echo"})
+	err := runExec(context.Background(), io.Discard, io.Discard, "missing", []string{"echo"}, execOptions{})
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -59,7 +59,7 @@ func TestRunExec_StoredIDReadError(t *testing.T) {
 	if err := writeJunk(ds.stateDir); err != nil {
 		t.Fatal(err)
 	}
-	if err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"}); err == nil {
+	if err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"}, execOptions{}); err == nil {
 		t.Fatal("expected error")
 	}
 }
@@ -70,7 +70,7 @@ func TestRunExec_UpFails(t *testing.T) {
 		{ExitCode: 0},
 	}, nil)
 	ds.runner.upErr = errors.New("up boom")
-	err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"})
+	err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"}, execOptions{})
 	if err == nil || !strings.Contains(err.Error(), "devcontainer up") {
 		t.Errorf("expected up error, got %v", err)
 	}
@@ -89,7 +89,7 @@ func TestRunExec_PersistContainerError(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = chmodReadWrite(ds.stateDir) })
-	err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"})
+	err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"}, execOptions{})
 	if err == nil || !strings.Contains(err.Error(), "persist container id") {
 		t.Errorf("expected persist error, got %v", err)
 	}
@@ -102,7 +102,7 @@ func TestRunExec_HappyPathBringsContainerUp(t *testing.T) {
 	}, nil)
 	ds.runner.execResult = devcontainer.ExecResult{Stdout: []byte("v20\n"), ExitCode: 0}
 	var stdout bytes.Buffer
-	if err := runExec(context.Background(), &stdout, io.Discard, "api", []string{"node", "--version"}); err != nil {
+	if err := runExec(context.Background(), &stdout, io.Discard, "api", []string{"node", "--version"}, execOptions{}); err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
 	if !strings.Contains(stdout.String(), "v20") {
@@ -127,7 +127,7 @@ func TestRunExec_ReuseExistingContainer(t *testing.T) {
 	if err := recordContainer("api", "existing"); err != nil {
 		t.Fatal(err)
 	}
-	if err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"}); err != nil {
+	if err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"}, execOptions{}); err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
 	if len(ds.runner.upCalls) != 0 {
@@ -144,7 +144,7 @@ func TestRunExec_ExecError(t *testing.T) {
 		{ExitCode: 0},
 	}, nil)
 	ds.runner.execErr = errors.New("exec boom")
-	err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"})
+	err := runExec(context.Background(), io.Discard, io.Discard, "api", []string{"echo"}, execOptions{})
 	if err == nil || !strings.Contains(err.Error(), "exec in container") {
 		t.Errorf("expected exec error, got %v", err)
 	}
@@ -157,7 +157,7 @@ func TestRunExec_NonZeroExitPropagates(t *testing.T) {
 	}, nil)
 	ds.runner.execResult = devcontainer.ExecResult{ExitCode: 13, Stdout: []byte("err out"), Stderr: []byte("err msg")}
 	var stdout, stderr bytes.Buffer
-	err := runExec(context.Background(), &stdout, &stderr, "api", []string{"false"})
+	err := runExec(context.Background(), &stdout, &stderr, "api", []string{"false"}, execOptions{})
 	if err == nil {
 		t.Fatal("expected error")
 	}

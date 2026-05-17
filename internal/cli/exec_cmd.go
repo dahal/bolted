@@ -15,7 +15,12 @@ import (
 	"github.com/dahal/bolted/internal/devcontainer"
 )
 
+type execOptions struct {
+	trust bool
+}
+
 func newExecCmd() *cobra.Command {
+	opts := &execOptions{}
 	cmd := &cobra.Command{
 		Use:   "exec <repo> <cmd> [args...]",
 		Short: "Run a one-shot command inside the repo's dev container",
@@ -23,13 +28,14 @@ func newExecCmd() *cobra.Command {
 			"The container is started on demand if it isn't already running.",
 		Args: cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runExec(cmd.Context(), cmd.OutOrStdout(), cmd.ErrOrStderr(), args[0], args[1:])
+			return runExec(cmd.Context(), cmd.OutOrStdout(), cmd.ErrOrStderr(), args[0], args[1:], *opts)
 		},
 	}
+	cmd.Flags().BoolVar(&opts.trust, "trust", false, "Auto-approve the repo's devcontainer.json without prompting (spec 18)")
 	return cmd
 }
 
-func runExec(ctx context.Context, stdout, stderr io.Writer, repo string, command []string) error {
+func runExec(ctx context.Context, stdout, stderr io.Writer, repo string, command []string, opts execOptions) error {
 	if len(command) == 0 {
 		return errors.New("exec: no command given")
 	}
@@ -38,6 +44,12 @@ func runExec(ctx context.Context, stdout, stderr io.Writer, repo string, command
 		return err
 	}
 	if err := requireRepo(ctx, b, stderr, repo); err != nil {
+		return err
+	}
+
+	// Spec 18 — same trust gate as bolt dev. No-op when the repo has no
+	// .devcontainer/devcontainer.json.
+	if err := trustGateFn(ctx, b, repo, repoPath(repo), stdinFn(), stderr, opts.trust); err != nil {
 		return err
 	}
 

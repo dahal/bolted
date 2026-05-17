@@ -83,12 +83,19 @@ func (f *fakeRunner) Exec(_ context.Context, containerID string, cmd []string, o
 
 func (f *fakeRunner) Build(_ context.Context, _ string) error { return f.buildErr }
 
-// withRunnerStub swaps newRunnerFn for the duration of one test.
+// withRunnerStub swaps newRunnerFn for the duration of one test and
+// neutralises the trust gate. Existing dev/exec tests never had to deal
+// with spec 18's prompt; opting into the real gate is done by individual
+// tests that re-assign trustGateFn after calling this helper.
 func withRunnerStub(t *testing.T, fr *fakeRunner) {
 	t.Helper()
 	orig := newRunnerFn
 	t.Cleanup(func() { newRunnerFn = orig })
 	newRunnerFn = func(_ backend.Backend, _ devcontainer.Options) devcontainer.Runner { return fr }
+
+	origTrust := trustGateFn
+	t.Cleanup(func() { trustGateFn = origTrust })
+	trustGateFn = func(context.Context, backend.Backend, string, string, io.Reader, io.Writer, bool) error { return nil }
 }
 
 // withStateDirStub points the state-dir helper at a temp directory.
