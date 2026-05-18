@@ -149,4 +149,4 @@ If you're hacking on Bolted itself, start with [Architecture](https://bolted.sh/
 
 ## License
 
-TBD - see [Issues](https://github.com/dahal/bolted/issues) for licensing discussion.
+[Apache License 2.0](LICENSE).
