@@ -1,6 +1,6 @@
 ---
 title: Quickstart
-description: Install Bolted, initialise an encrypted volume, clone a repo, and start a dev container — in about five minutes.
+description: Install Bolted, initialise an encrypted volume, clone a repo, and start a dev container - in about five minutes.
 icon: Rocket
 ---
 
@@ -29,7 +29,7 @@ export PATH="$HOME/.local/bin:$PATH"
 </Tab>
 <Tab value="Windows">
 
-Windows binaries are shipped as a zip. The shell installer doesn't run on Windows — download the archive instead:
+Windows binaries are shipped as a zip. The shell installer doesn't run on Windows - download the archive instead:
 
 1. Grab `bolted-<version>-windows-amd64.zip` from the [releases page](https://github.com/dahal/bolted/releases).
 2. Extract `bolt.exe` somewhere on your `PATH` (for example `%USERPROFILE%\bin`).
@@ -46,7 +46,7 @@ bolt version
 
 ## 2. Initialise Bolted
 
-`bolt init` creates the encrypted volume, sizes a VM from your hardware, and writes `~/.bolted/config.yaml`. You'll be prompted to set a password — twice.
+`bolt init` creates the encrypted volume, sizes a VM from your hardware, and writes `~/.bolted/config.yaml`. You'll be prompted to set a password - twice.
 
 ```sh
 bolt init
@@ -70,7 +70,7 @@ When you're done for the day:
 bolt lock
 ```
 
-`lock` unmounts the volume and evicts the key from the VM's kernel keyring. After this, the bytes on disk are ciphertext again. The VM keeps running by default so the next `unlock` is fast — pass `--stop-vm` to shut it down too.
+`lock` unmounts the volume and evicts the key from the VM's kernel keyring. After this, the bytes on disk are ciphertext again. The VM keeps running by default so the next `unlock` is fast - pass `--stop-vm` to shut it down too.
 
 ## 4. Clone a repo into the volume
 
@@ -118,7 +118,7 @@ That's the loop: `unlock` → work → `lock`.
 
 ## Where to go next
 
-- [Encryption](/docs/concepts/encryption) — the threat model, in detail.
-- [Multi-repo runtime](/docs/concepts/multi-repo) — how multiple containers share one VM.
-- [Toolchain layers](/docs/concepts/toolchain-layers) — what goes in the base image vs. `bolted.yaml` vs. per-repo devcontainers.
-- [Command reference](/docs/commands/init) — every shipped command.
+- [Encryption](/docs/concepts/encryption) - the threat model, in detail.
+- [Multi-repo runtime](/docs/concepts/multi-repo) - how multiple containers share one VM.
+- [Toolchain layers](/docs/concepts/toolchain-layers) - what goes in the base image vs. `bolted.yaml` vs. per-repo devcontainers.
+- [Command reference](/docs/commands/init) - every shipped command.

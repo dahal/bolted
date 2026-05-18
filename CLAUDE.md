@@ -10,7 +10,7 @@ A password-locked, encrypted Linux dev environment CLI for Mac and Windows (Linu
 | `specs/` | Detailed, actionable specs (like GitHub issues). Numbered. Agents pick these up to implement |
 | `docs/` | Living source of truth for what's IMPLEMENTED. Waku + Fumadocs site |
 
-Each directory has its own `CLAUDE.md` with conventions specific to that area — read it before working there.
+Each directory has its own `CLAUDE.md` with conventions specific to that area - read it before working there.
 
 ## Task runner
 

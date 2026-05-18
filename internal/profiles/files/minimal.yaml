@@ -1,4 +1,4 @@
-# minimal — base image only.
+# minimal - base image only.
 #
 # Provides nothing beyond what the base Alpine VM image ships with
 # (podman, cryptsetup, git, openssh, bash, curl). Use this as a starting

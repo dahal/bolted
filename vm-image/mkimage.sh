@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# mkimage.sh — build the Bolted VM rootfs and package it for both backends.
+# mkimage.sh - build the Bolted VM rootfs and package it for both backends.
 #
 # Outputs (under vm-image/dist/):
-#   bolted-vm-<version>-rootfs.tar.gz   — consumed by `wsl --import`
-#   bolted-vm-<version>.qcow2           — booted by Lima's Alpine template
+#   bolted-vm-<version>-rootfs.tar.gz   - consumed by `wsl --import`
+#   bolted-vm-<version>.qcow2           - booted by Lima's Alpine template
 #
 # Requirements on the build host:
 #   - docker (or a docker-compatible CLI exposed as `docker`)

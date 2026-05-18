@@ -1,4 +1,4 @@
-# data — data engineering / analytics starter.
+# data - data engineering / analytics starter.
 #
 # gh + gcloud (gcloud bundles `bq` for BigQuery), plus apk packages for
 # local data wrangling.

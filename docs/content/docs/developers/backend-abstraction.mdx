@@ -44,17 +44,17 @@ type ExecResult struct {
 }
 ```
 
-Deliberately small. Eight methods, three supporting types. Anything more elaborate (process streaming, pty handling, multiplexed exec) is out of scope — Exec returns the captured result and the caller writes it where it needs.
+Deliberately small. Eight methods, three supporting types. Anything more elaborate (process streaming, pty handling, multiplexed exec) is out of scope - Exec returns the captured result and the caller writes it where it needs.
 
 ## Three implementations
 
-### `internal/backend/lima/` — production on Mac
+### `internal/backend/lima/` - production on Mac
 
 Shells out to `limactl` via an injectable `runner` interface. The runner's only job is to spawn external processes; tests substitute a `fakeRunner` that records every call and returns canned bytes.
 
 | Method | What it actually runs |
 |---|---|
-| `EnsureVM` | Writes a lima.yaml from `VMSpec` into `~/.bolted/vm/`, runs `limactl create`. Idempotent — if the VM exists per `limactl ls --json`, skips create. |
+| `EnsureVM` | Writes a lima.yaml from `VMSpec` into `~/.bolted/vm/`, runs `limactl create`. Idempotent - if the VM exists per `limactl ls --json`, skips create. |
 | `StartVM` / `StopVM` | `limactl start <name>` / `limactl stop <name>`. |
 | `IsRunning` | Parses `limactl ls --json` (NDJSON), looks for `name == bolted && status == "Running"`. |
 | `Exec` | Wraps the command in `sh -c "cd <cwd> && exec <cmd…>"` for cwd, env-var prefix for env, `limactl shell -t` for TTY. Returns the captured `ExecResult`. |
@@ -62,13 +62,13 @@ Shells out to `limactl` via an injectable `runner` interface. The runner's only 
 | `UnforwardPort` | Removes from the tracking file. |
 | `DeleteVM` | `limactl delete <name> --force`. |
 
-`requireLima()` runs before `EnsureVM` / `StartVM` and prints a clear "install Lima first" error if `limactl` isn't on `$PATH`. It's deliberately not called from every method — unit tests would have to stub `--version` on every call.
+`requireLima()` runs before `EnsureVM` / `StartVM` and prints a clear "install Lima first" error if `limactl` isn't on `$PATH`. It's deliberately not called from every method - unit tests would have to stub `--version` on every call.
 
-### `internal/backend/wsl2/` — production on Windows
+### `internal/backend/wsl2/` - production on Windows
 
 Same shape, different tool. Shells out to `wsl.exe` (and `netsh.exe` for portproxy). One twist worth knowing:
 
-**Runtime guard, not build tag.** The package compiles on macOS. `currentGOOS` + `requireWindowsFn` form a runtime check that refuses to start on the wrong OS. This lets the wsl2 backend's unit tests run on the dev host without needing a Windows machine — `requireWindowsFn` is swapped to a no-op for tests.
+**Runtime guard, not build tag.** The package compiles on macOS. `currentGOOS` + `requireWindowsFn` form a runtime check that refuses to start on the wrong OS. This lets the wsl2 backend's unit tests run on the dev host without needing a Windows machine - `requireWindowsFn` is swapped to a no-op for tests.
 
 Other notable bits:
 
@@ -76,7 +76,7 @@ Other notable bits:
 - **`.wslconfig` handling.** WSL2 only honors `%USERPROFILE%\.wslconfig` at the global scope. The backend writes a per-instance hint under `<installDir>/.wslconfig` and warns if a global one already exists. Documented asymmetry; not something we can fix cleanly without overriding the user's global file.
 - **`netsh interface portproxy`** is only invoked when `hostPort != guestPort`. WSL2 auto-bridges loopback, so the common matching-port case is a no-op + persistence-only.
 
-### `internal/backend/mock/` — the unit-test fake
+### `internal/backend/mock/` - the unit-test fake
 
 Implements `Backend` by recording every call. Tests configure return values via per-method `ErrXxx` fields and `ExecResult` / `IsRunningResult`:
 
@@ -120,17 +120,17 @@ The override is what makes per-OS code unit-testable. From a darwin dev host, yo
 
 ## Adding a fourth backend
 
-Hypothetical — say we eventually want a `nspawn` backend for Linux hosts.
+Hypothetical - say we eventually want a `nspawn` backend for Linux hosts.
 
 1. **New package** `internal/backend/nspawn/`. Implement the `Backend` interface.
-2. **Inject `runtimeGOOS`** if you want to be defensive against being run on the wrong OS — same pattern as wsl2's `currentGOOS`.
+2. **Inject `runtimeGOOS`** if you want to be defensive against being run on the wrong OS - same pattern as wsl2's `currentGOOS`.
 3. **Add the case to the factory** (`internal/backend/factory/factory.go`):
    ```go
    case backend.BackendNspawn:
        return nspawn.NewBackend(…), nil
    ```
-4. **`internal/backend/config.go`** — add `BackendNspawn = "nspawn"` to the constants.
-5. **Auto-detection** in the factory (`case runtimeGOOS == "linux"`) — only after the nspawn backend is real, otherwise the `auto` selection picks something that doesn't work.
+4. **`internal/backend/config.go`** - add `BackendNspawn = "nspawn"` to the constants.
+5. **Auto-detection** in the factory (`case runtimeGOOS == "linux"`) - only after the nspawn backend is real, otherwise the `auto` selection picks something that doesn't work.
 6. **Unit tests** for the new backend at 100% via injected runner. Production verification through `BOLTED_E2E=1` on a real Linux host.
 
 Adding a backend is a self-contained spec. The orchestration packages above don't change; only the factory grows by one branch.
@@ -139,11 +139,11 @@ Adding a backend is a self-contained spec. The orchestration packages above don'
 
 A few things you might expect to be there but aren't, with reasoning:
 
-- **No streaming exec.** `Backend.Exec` is sync; it returns when the command finishes. For long-running logs (`bolt logs -f`), the caller polls `podman logs -f` and tees the captured stdout/stderr — we don't expose a `ReadCloser`. Pros: tiny surface. Cons: not great for unbounded streams; revisit if it bites.
+- **No streaming exec.** `Backend.Exec` is sync; it returns when the command finishes. For long-running logs (`bolt logs -f`), the caller polls `podman logs -f` and tees the captured stdout/stderr - we don't expose a `ReadCloser`. Pros: tiny surface. Cons: not great for unbounded streams; revisit if it bites.
 - **No filesystem methods.** No `ReadFile` / `WriteFile`. Everything goes through `Exec` (typically `cat <path>` / `tee <path>`). Keeps the interface tight. Specs that need to move bytes (`bolt export`, `bolt import`, devcontainer config hashing) just shell out via `Exec`.
 - **No "is the Bolted volume mounted?" probe.** Each consumer that needs this does its own probe (typically `Backend.Exec(ctx, []string{"test", "-d", "/bolted/repos"}, …)` and checks `ExecResult.ExitCode`). A shared helper would be nice; it hasn't surfaced as a real pain point.
 - **No bulk-port-forward API.** `ForwardPort` is one port at a time. `internal/portforward.Manager` is the higher-level abstraction that calls it in a loop. Keeping the backend dumb is the point.
 
 <Callout>
-The Backend interface is the most stable part of the codebase — nine specs depend on it. Changes here ripple everywhere. Adding fields to `VMSpec` or `ExecOpts` is fine (it's additive); changing method signatures is a real coordination problem. If you need a new capability, prefer adding a sibling method (`Backend.Snapshot`) over expanding `Exec`.
+The Backend interface is the most stable part of the codebase - nine specs depend on it. Changes here ripple everywhere. Adding fields to `VMSpec` or `ExecOpts` is fine (it's additive); changing method signatures is a real coordination problem. If you need a new capability, prefer adding a sibling method (`Backend.Snapshot`) over expanding `Exec`.
 </Callout>

@@ -1,4 +1,4 @@
-# fullstack — opinionated kitchen-sink for web / cloud / k8s work.
+# fullstack - opinionated kitchen-sink for web / cloud / k8s work.
 #
 # Features installed via the devcontainer features ecosystem; packages
 # pulled straight from Alpine apk.

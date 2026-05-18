@@ -3,7 +3,7 @@ title: bolt shell
 description: Open an interactive shell inside the Bolted VM (not a container).
 ---
 
-Drops you into an interactive shell **inside the Bolted VM** — at the VM level, not inside any particular repo's dev container. Use this for VM-wide debugging, manual `apk` installs, inspecting `/bolted/repos`, etc.
+Drops you into an interactive shell **inside the Bolted VM** - at the VM level, not inside any particular repo's dev container. Use this for VM-wide debugging, manual `apk` installs, inspecting `/bolted/repos`, etc.
 
 For a shell scoped to a repo's dev container, use [`bolt dev <repo>`](/docs/commands/dev) instead.
 
@@ -27,7 +27,7 @@ bolt shell
 ## What happens
 
 1. Verify Bolted is initialised, the VM is running, and the volume is unlocked.
-2. Refuse if stdin isn't a TTY — an interactive shell on a closed stdin is just a wedged process.
+2. Refuse if stdin isn't a TTY - an interactive shell on a closed stdin is just a wedged process.
 3. Exec `/bin/sh` (or the shell configured via `bolted.yaml`, once that lands) inside the VM with TTY allocation.
 
 ## Exit codes
@@ -41,5 +41,5 @@ bolt shell
 
 ## See also
 
-- [`bolt dev`](/docs/commands/dev) — shell inside a repo's dev container
-- [`bolt status`](/docs/commands/status) — check whether Bolted is unlocked
+- [`bolt dev`](/docs/commands/dev) - shell inside a repo's dev container
+- [`bolt status`](/docs/commands/status) - check whether Bolted is unlocked

@@ -1,6 +1,6 @@
 ---
 title: bolt status
-description: Show Bolted state — VM, lock, repos, containers.
+description: Show Bolted state - VM, lock, repos, containers.
 ---
 
 Prints a summary of the Bolted's current state: whether the VM is running, whether the volume is unlocked, which repos exist, and whether their dev containers are up. Always safe to call.
@@ -32,7 +32,7 @@ VM RSS:     1234 MiB
 Repos:      2
   - api
   - web
-Containers: —
+Containers: -
 ```
 
 Machine-readable for scripts:
@@ -56,7 +56,7 @@ bolt status --json
     "count": 2,
     "names": ["api", "web"]
   },
-  "containers": "—"
+  "containers": "-"
 }
 ```
 
@@ -70,5 +70,5 @@ bolt status --json
 
 ## See also
 
-- [`bolt ls`](/docs/commands/ls) — detailed per-repo info
+- [`bolt ls`](/docs/commands/ls) - detailed per-repo info
 - [`bolt unlock`](/docs/commands/unlock) / [`bolt lock`](/docs/commands/lock)

@@ -1,6 +1,6 @@
 ---
 title: Code patterns
-description: The codebase conventions you'll see everywhere — var indirection, accept-interfaces, sentinel errors, e2e gates. Why they're there and how to use them.
+description: The codebase conventions you'll see everywhere - var indirection, accept-interfaces, sentinel errors, e2e gates. Why they're there and how to use them.
 icon: Wrench
 ---
 
@@ -10,7 +10,7 @@ Four patterns recur across nearly every package. Once you see them, the codebase
 
 ## 1. Indirection vars for external calls
 
-Anywhere production code calls out to the OS — `os.Open`, `exec.Command`, `runtime.GOOS`, `debug.ReadBuildInfo`, even pure stdlib helpers like `json.MarshalIndent` whose error branch is unreachable in practice — we wrap it in a package-level `var` so tests can swap the implementation.
+Anywhere production code calls out to the OS - `os.Open`, `exec.Command`, `runtime.GOOS`, `debug.ReadBuildInfo`, even pure stdlib helpers like `json.MarshalIndent` whose error branch is unreachable in practice - we wrap it in a package-level `var` so tests can swap the implementation.
 
 The pattern, taken from `internal/buildinfo/buildinfo.go`:
 
@@ -45,14 +45,14 @@ func TestFromDebug_NoBuildInfo(t *testing.T) {
 Why we don't use dependency injection through function arguments: it pollutes the surface area for the 99% of callers who just want the default. Package vars cost one line of wiring; everyone uses the production impl unless a test deliberately swaps it.
 
 Examples across the codebase:
-- `internal/buildinfo/buildinfo.go` — `readBuildInfo`
-- `internal/backend/factory/factory.go` — `runtimeGOOS`
-- `internal/cli/password.go` — `isTerminalFn`, `readPasswordFn`
-- `internal/cli/lifecycle.go` — `newBackendFn`, `loadConfigFn`, `saveConfigFn`, `newPrompterFn`, `newVolumeFn`, `detectDefaultsFn`, `boltedDirFn`
-- `internal/cli/dev_cmd.go` — `newRunnerFn`, `stateDirFn`, `trustGateFn`, `confirmTrustFn`
-- `internal/volume/volume.go` and `internal/backend/lima/lima.go` — `yamlMarshal`, `jsonMarshalIndent` (the latter literally cannot fail for `map[string]int`; we wrap it anyway so coverage can hit the error branch)
-- `internal/cli/status_cmd.go` — `statFn`
-- `internal/cli/shell_cmd.go` — `stdinFn`
+- `internal/buildinfo/buildinfo.go` - `readBuildInfo`
+- `internal/backend/factory/factory.go` - `runtimeGOOS`
+- `internal/cli/password.go` - `isTerminalFn`, `readPasswordFn`
+- `internal/cli/lifecycle.go` - `newBackendFn`, `loadConfigFn`, `saveConfigFn`, `newPrompterFn`, `newVolumeFn`, `detectDefaultsFn`, `boltedDirFn`
+- `internal/cli/dev_cmd.go` - `newRunnerFn`, `stateDirFn`, `trustGateFn`, `confirmTrustFn`
+- `internal/volume/volume.go` and `internal/backend/lima/lima.go` - `yamlMarshal`, `jsonMarshalIndent` (the latter literally cannot fail for `map[string]int`; we wrap it anyway so coverage can hit the error branch)
+- `internal/cli/status_cmd.go` - `statFn`
+- `internal/cli/shell_cmd.go` - `stdinFn`
 
 ### When to add one
 
@@ -60,7 +60,7 @@ If your code calls a stdlib function whose **error branch can't fire in the test
 
 ### When *not* to
 
-Pure functions don't need indirection — their inputs are already controllable. `parseSize("8GB")` doesn't need a `parseSizeFn` var; tests just call it with different strings.
+Pure functions don't need indirection - their inputs are already controllable. `parseSize("8GB")` doesn't need a `parseSizeFn` var; tests just call it with different strings.
 
 ## 2. Accept interfaces, return concrete
 
@@ -90,15 +90,15 @@ The benefit: the `volume` package's exported surface stays minimal, and the life
 
 Whenever the caller might want to recognise a specific failure category, we expose a sentinel error and wrap concrete failures with `fmt.Errorf("…: %w", sentinel)`:
 
-- `volume.ErrBadPassword` — wrong LUKS passphrase
-- `devcontainer.ErrContainerExists` — `Up` called twice on the same repo
-- `devcontainer.ErrDevcontainerMissing` — devcontainer CLI not installed
-- `devcontainertrust.ErrNoConfig` — repo has no `.devcontainer/devcontainer.json` (gate becomes a no-op)
-- `devcontainertrust.ErrNoTTY` — interactive trust prompt with non-TTY stdin
-- `keychain.ErrNotFound` — keychain entry missing
+- `volume.ErrBadPassword` - wrong LUKS passphrase
+- `devcontainer.ErrContainerExists` - `Up` called twice on the same repo
+- `devcontainer.ErrDevcontainerMissing` - devcontainer CLI not installed
+- `devcontainertrust.ErrNoConfig` - repo has no `.devcontainer/devcontainer.json` (gate becomes a no-op)
+- `devcontainertrust.ErrNoTTY` - interactive trust prompt with non-TTY stdin
+- `keychain.ErrNotFound` - keychain entry missing
 - `provision.ErrXxx` (per the package's needs)
 
-Callers use `errors.Is(err, volume.ErrBadPassword)` to branch — never string-matching, never type assertion against `*xxxError`. The wrap layer carries context (`fmt.Errorf("cryptsetup open %s: %w", path, volume.ErrBadPassword)`) so the rendered message is useful, but the programmatic check stays clean.
+Callers use `errors.Is(err, volume.ErrBadPassword)` to branch - never string-matching, never type assertion against `*xxxError`. The wrap layer carries context (`fmt.Errorf("cryptsetup open %s: %w", path, volume.ErrBadPassword)`) so the rendered message is useful, but the programmatic check stays clean.
 
 The exit-code machinery (`internal/cli/lifecycle.go::exitError`) follows the same shape: the type is unexported, recognised via `errors.As`, and lets typed errors flow through Cobra's `RunE` return path.
 
@@ -106,7 +106,7 @@ The exit-code machinery (`internal/cli/lifecycle.go::exitError`) follows the sam
 
 Per-OS code (Lima only matters on Mac, WSL2 only on Windows) is split two ways depending on whether we need the package to *compile* everywhere:
 
-**Build tag, compile only on target.** Used for code that genuinely can't compile elsewhere — e.g. `internal/hostinfo/hostinfo_windows.go` uses `golang.org/x/sys/windows.MemoryStatusEx` which has no darwin equivalent:
+**Build tag, compile only on target.** Used for code that genuinely can't compile elsewhere - e.g. `internal/hostinfo/hostinfo_windows.go` uses `golang.org/x/sys/windows.MemoryStatusEx` which has no darwin equivalent:
 
 ```go
 //go:build windows
@@ -142,8 +142,8 @@ When to use which:
 
 Anything that touches a real backend (Lima, WSL2, cryptsetup, podman) is split into two test files per package:
 
-- `xxx_test.go` — unit tests with mocked backends. Run on every `go test ./...`. Target 100% coverage.
-- `xxx_e2e_test.go` — integration tests against real hardware. **Skipped unless `os.Getenv("BOLTED_E2E") == "1"`** (and on some packages, gated by `runtime.GOOS` as well).
+- `xxx_test.go` - unit tests with mocked backends. Run on every `go test ./...`. Target 100% coverage.
+- `xxx_e2e_test.go` - integration tests against real hardware. **Skipped unless `os.Getenv("BOLTED_E2E") == "1"`** (and on some packages, gated by `runtime.GOOS` as well).
 
 The pattern, from `internal/volume/volume_e2e_test.go`:
 

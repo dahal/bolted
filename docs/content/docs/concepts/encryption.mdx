@@ -6,7 +6,7 @@ icon: Lock
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Bolted keeps repo contents inside a LUKS-encrypted volume that lives entirely within the VM. When locked, the bytes on disk are ciphertext. Unlocked, the plaintext exists only inside the guest VM — your host shell can't read or write it.
+Bolted keeps repo contents inside a LUKS-encrypted volume that lives entirely within the VM. When locked, the bytes on disk are ciphertext. Unlocked, the plaintext exists only inside the guest VM - your host shell can't read or write it.
 
 ## Primitives
 
@@ -40,9 +40,9 @@ It is never written to disk by Bolted itself.
 
 `bolt lock` runs in this order:
 
-1. Stop running dev containers (planned — currently the volume is unmounted while leaving any podman activity to be drained).
+1. Stop running dev containers (planned - currently the volume is unmounted while leaving any podman activity to be drained).
 2. Unmount `/bolted/repos`.
-3. `cryptsetup close bolted` — the kernel wipes the key from memory.
+3. `cryptsetup close bolted` - the kernel wipes the key from memory.
 4. Optionally stop the VM (`--stop-vm`). Default is to keep the VM running so the next `unlock` is fast.
 
 After step 3, the only path back to plaintext is the password.
@@ -64,15 +64,15 @@ After step 3, the only path back to plaintext is the password.
 3. Verify the new keyslot.
 4. Remove the old keyslot.
 
-If any step fails before step 4, the old password still unlocks the volume — re-run `bolt password`. Data is never re-encrypted; this is just a slot rotation.
+If any step fails before step 4, the old password still unlocks the volume - re-run `bolt password`. Data is never re-encrypted; this is just a slot rotation.
 
-## Threat model — what this protects
+## Threat model - what this protects
 
 - **Locked + malicious host process.** While locked, `volume.img` is ciphertext at the block level. A host process reading the file can't recover repo contents without the password.
 - **Locked + lost laptop.** Same as above. Argon2id makes offline brute force expensive for strong passwords.
 - **Unlocked + host-side dev tooling.** Host processes (browsers, editors, package managers running on the host, malicious npm/cargo postinstall scripts in *host* projects) cannot reach into the VM's filesystem.
 
-## Threat model — what this does NOT protect
+## Threat model - what this does NOT protect
 
 <Callout type="warn">
 Encryption is at-rest only. None of the following are defended against:

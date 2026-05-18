@@ -8,11 +8,11 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 ## The problem
 
-A modern dev environment installs thousands of third-party packages. `npm install` on a typical Node project pulls 1,500+ packages transitively. `pip install`, `cargo build`, `bundle install`, `go mod download` — same shape, different ecosystems. Each of those packages can run arbitrary code on install (postinstall scripts, build scripts, just being `require`d) and is trusted with full access to the user's machine.
+A modern dev environment installs thousands of third-party packages. `npm install` on a typical Node project pulls 1,500+ packages transitively. `pip install`, `cargo build`, `bundle install`, `go mod download` - same shape, different ecosystems. Each of those packages can run arbitrary code on install (postinstall scripts, build scripts, just being `require`d) and is trusted with full access to the user's machine.
 
 When that code runs on your laptop, it has the same privileges you do:
 
-- Every repo in `~/Code`, including ones unrelated to the package — staging environments, customer code, employer code.
+- Every repo in `~/Code`, including ones unrelated to the package - staging environments, customer code, employer code.
 - SSH keys (`~/.ssh/id_*`).
 - Cloud credentials (`~/.aws/credentials`, `~/.config/gcloud/credentials.db`, GitHub tokens in `~/.config/gh/`).
 - Browser cookies, password manager databases, `.env` files with API tokens.
@@ -29,7 +29,7 @@ The threat model here is **supply-chain compromise via dev tooling**, not "a sop
 Three properties, in priority order:
 
 1. **At-rest secrecy.** When the Bolted is locked (no one is actively developing), the repo bytes on disk are ciphertext. A casual look (host malware running as your user, an unrelated process scraping `find ~ -type f`, a stolen laptop) gets nothing useful.
-2. **Active-use isolation.** When unlocked, the repos live inside a Linux VM. A host-side process — even one you ran yourself in another terminal — can't read or write those repo files directly.
+2. **Active-use isolation.** When unlocked, the repos live inside a Linux VM. A host-side process - even one you ran yourself in another terminal - can't read or write those repo files directly.
 3. **Boring developer experience.** It has to feel close enough to native development that people actually use it. `bolt git clone …`, `bolt gh auth login`, `bolt gcloud …` all behave the way the host versions do. Editors keep working. `localhost:3000` is reachable from the host browser.
 
 What we explicitly do *not* claim:
@@ -46,11 +46,11 @@ We considered three alternative shapes and rejected each:
 
 - On Linux, those volumes are just files on disk owned by root in `/var/lib/docker/volumes/`; nothing stops a host process from reading them.
 - The kernel boundary between host and container is shared. Container escapes exist. The xz attacker would have had the same privileges as the host runtime.
-- Encryption-at-rest requires putting the Docker data root on a LUKS volume — not impossible but never the default and easy to set up wrong.
+- Encryption-at-rest requires putting the Docker data root on a LUKS volume - not impossible but never the default and easy to set up wrong.
 
-**Host-level sandboxing** (Bubblewrap, Firejail, macOS sandbox profiles). These work for sandboxing one process at a time but don't compose into a "general dev environment" — every spawned tool would need its own profile, every spawn breaks unless explicitly allowed. The complexity surface is enormous and the misconfiguration risk is worse than no sandbox.
+**Host-level sandboxing** (Bubblewrap, Firejail, macOS sandbox profiles). These work for sandboxing one process at a time but don't compose into a "general dev environment" - every spawned tool would need its own profile, every spawn breaks unless explicitly allowed. The complexity surface is enormous and the misconfiguration risk is worse than no sandbox.
 
-**A Linux VM** (Lima on Mac, WSL2 on Windows). The kernel boundary is real. The disk image is one file we can encrypt. The VM has full Linux semantics so anything that runs on Linux (cryptsetup, podman, devcontainers) works the same in both backends. The downside is weight — a few hundred MB of base image, ~256 MB of RAM idle — but that's tolerable on the kind of hardware people develop on.
+**A Linux VM** (Lima on Mac, WSL2 on Windows). The kernel boundary is real. The disk image is one file we can encrypt. The VM has full Linux semantics so anything that runs on Linux (cryptsetup, podman, devcontainers) works the same in both backends. The downside is weight - a few hundred MB of base image, ~256 MB of RAM idle - but that's tolerable on the kind of hardware people develop on.
 
 The VM gives us the at-rest secrecy (encrypted disk image) and the active-use isolation (kernel boundary) almost for free. The hard part is making it feel native, which is what the rest of the architecture exists to solve.
 
@@ -63,4 +63,4 @@ Four layers, each does one thing:
 3. **Per-repo dev containers**, started by the standard devcontainer CLI. Each repo's `.devcontainer/devcontainer.json` is honored. Containers are isolated from each other.
 4. **A passthrough CLI** (`bolt`) that runs whatever you type inside the VM. `bolt git clone …` → `git clone` inside the VM. `bolt npm install` → in the right container. `bolt gh auth login` → in the VM, where your gh credentials live.
 
-The user-facing pages — [Encryption](/docs/concepts/encryption), [Multi-repo](/docs/concepts/multi-repo), [Toolchain layers](/docs/concepts/toolchain-layers) — go into each layer's mechanics. The next page, [Architecture](/docs/developers/architecture), shows how the Go packages map onto this shape.
+The user-facing pages - [Encryption](/docs/concepts/encryption), [Multi-repo](/docs/concepts/multi-repo), [Toolchain layers](/docs/concepts/toolchain-layers) - go into each layer's mechanics. The next page, [Architecture](/docs/developers/architecture), shows how the Go packages map onto this shape.

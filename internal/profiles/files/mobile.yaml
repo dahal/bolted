@@ -1,4 +1,4 @@
-# mobile — JVM + fastlane starter for mobile release workflows.
+# mobile - JVM + fastlane starter for mobile release workflows.
 #
 # Pulls in gh and a JDK; fastlane is installed from apk so it lands on
 # $PATH without a separate gem-management dance.

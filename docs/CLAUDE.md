@@ -1,29 +1,29 @@
 # docs
 
-User-facing documentation site. Living source of truth for what Bolted actually does — not what's planned.
+User-facing documentation site. Living source of truth for what Bolted actually does - not what's planned.
 
 ## Stack
 
-- **Waku** — React-based framework, single binary build
-- **Fumadocs** — docs-specific MDX components, search, navigation
-- **Tailwind v4** — styling
-- **Bun** — package manager and runtime (see `Taskfile.yml`)
+- **Waku** - React-based framework, single binary build
+- **Fumadocs** - docs-specific MDX components, search, navigation
+- **Tailwind v4** - styling
+- **Bun** - package manager and runtime (see `Taskfile.yml`)
 
 ## Where things live
 
-- `content/docs/*.mdx` — all docs pages. File path = URL path. Use frontmatter (`title`, `description`, optionally `icon`).
-- `src/pages/(home)/index.tsx` — landing page at `/`.
-- `src/lib/shared.ts` — site-wide constants (`appName`, GitHub config).
-- `src/lib/layout.shared.tsx` — base layout (nav, GitHub link).
-- `src/components/mdx.tsx` — MDX component overrides.
-- Generated/build artifacts (`.source/`, `src/pages.gen.ts`, `dist/`) — gitignored. Never commit.
+- `content/docs/*.mdx` - all docs pages. File path = URL path. Use frontmatter (`title`, `description`, optionally `icon`).
+- `src/pages/(home)/index.tsx` - landing page at `/`.
+- `src/lib/shared.ts` - site-wide constants (`appName`, GitHub config).
+- `src/lib/layout.shared.tsx` - base layout (nav, GitHub link).
+- `src/components/mdx.tsx` - MDX component overrides.
+- Generated/build artifacts (`.source/`, `src/pages.gen.ts`, `dist/`) - gitignored. Never commit.
 
 ## Common tasks (run from repo root)
 
-- `task docs:dev` — dev server with hot reload
-- `task docs:build` — production build
-- `task docs:check` — TypeScript + MDX type check
-- `task docs:lint` — oxlint
+- `task docs:dev` - dev server with hot reload
+- `task docs:build` - production build
+- `task docs:check` - TypeScript + MDX type check
+- `task docs:lint` - oxlint
 
 ## Conventions
 
@@ -35,7 +35,7 @@ User-facing documentation site. Living source of truth for what Bolted actually 
 
 ## Don't
 
-- Don't add aspirational features here — those belong in `specs/`.
+- Don't add aspirational features here - those belong in `specs/`.
 - Don't duplicate brainstorm content; link to it if needed.
 - Don't commit generated files (`.source/`, `src/pages.gen.ts`).
-- Don't run `npm`/`yarn`/`pnpm` — this project uses `bun` (via `Taskfile.yml`).
+- Don't run `npm`/`yarn`/`pnpm` - this project uses `bun` (via `Taskfile.yml`).

@@ -26,7 +26,7 @@ Each repo that you `bolt dev` or `bolt exec` against gets its own podman contain
 Lifecycle:
 
 - Containers start on first `bolt dev <repo>` or `bolt exec <repo> <cmd>`.
-- They keep running across shell exits — `npm run dev` keeps serving after you close the terminal.
+- They keep running across shell exits - `npm run dev` keeps serving after you close the terminal.
 - They stop on `bolt stop <repo>`, `bolt stop --all`, `bolt lock`, or VM shutdown.
 
 Only one container per repo runs at a time. `bolt dev` against an already-running container just attaches a new shell.
@@ -43,7 +43,7 @@ All `bolted-*` containers join a shared podman network. From inside repo A, repo
 bolt exec api curl http://bolted-web:3000/health
 ```
 
-It's documented, not magical — you opt in by using the right hostname.
+It's documented, not magical - you opt in by using the right hostname.
 
 ## Port collisions (host-side)
 
@@ -63,7 +63,7 @@ All containers share the VM's RAM and CPU budget. Defaults computed by `bolt ini
 - RAM: `max(4 GB, min(16 GB, 25% of host RAM))`
 - CPUs: `max(2, min(8, 50% of host cores))`
 
-For four or more active repos, bump the allocation by editing `~/.bolted/config.yaml` and restarting the VM. Disk is sparse — it grows on demand up to the configured maximum.
+For four or more active repos, bump the allocation by editing `~/.bolted/config.yaml` and restarting the VM. Disk is sparse - it grows on demand up to the configured maximum.
 
 Check current state:
 
@@ -75,8 +75,8 @@ bolt status
 
 Bolted tracks what it has started in `~/.bolted/state/`:
 
-- `containers.json` — which repos have running dev containers (with their podman container IDs).
-- `ports.json` — host-port allocations (populated when port forwarding lands).
+- `containers.json` - which repos have running dev containers (with their podman container IDs).
+- `ports.json` - host-port allocations (populated when port forwarding lands).
 
 These are managed by the CLI; you shouldn't edit them by hand.
 
@@ -86,4 +86,4 @@ Not built in for MVP. The crude workaround: dedicate a "service repo" and run Po
 
 ## Want the design rationale?
 
-See [`.claude/brainstorm/02-architecture.md`](https://github.com/dahal/bolted/blob/main/.claude/brainstorm/02-architecture.md) — specifically the *Multi-repo runtime model* and *Port forwarding* sections.
+See [`.claude/brainstorm/02-architecture.md`](https://github.com/dahal/bolted/blob/main/.claude/brainstorm/02-architecture.md) - specifically the *Multi-repo runtime model* and *Port forwarding* sections.

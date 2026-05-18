@@ -1,6 +1,6 @@
 ---
 title: Passthrough commands
-description: Anything that isn't a reserved bolt subcommand runs inside the VM verbatim — git, gh, gcloud, kubectl, curl, ...
+description: Anything that isn't a reserved bolt subcommand runs inside the VM verbatim - git, gh, gcloud, kubectl, curl, ...
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -36,7 +36,7 @@ bolt ssh-keygen -t ed25519
 
 ## Default working directory
 
-`bolt <cmd>` runs with `cwd = /bolted/repos` by default — so `bolt git clone <url>` lands in the right place.
+`bolt <cmd>` runs with `cwd = /bolted/repos` by default - so `bolt git clone <url>` lands in the right place.
 
 Override:
 
@@ -64,7 +64,7 @@ status      stop     trust    unforward unlock  version
 
 (`passwd` is an alias for `password`.)
 
-Some of these aren't implemented yet — invoking one prints a "not yet implemented" message rather than falling through to the VM.
+Some of these aren't implemented yet - invoking one prints a "not yet implemented" message rather than falling through to the VM.
 
 ## What happens
 
@@ -88,6 +88,6 @@ The passthrough router does not parse your inner command's flags. `bolt git --ve
 
 ## See also
 
-- [`bolt exec`](/docs/commands/exec) — container-scoped one-shot
-- [`bolt dev`](/docs/commands/dev) — container-scoped interactive shell
-- [`bolt shell`](/docs/commands/shell) — VM-level interactive shell
+- [`bolt exec`](/docs/commands/exec) - container-scoped one-shot
+- [`bolt dev`](/docs/commands/dev) - container-scoped interactive shell
+- [`bolt shell`](/docs/commands/shell) - VM-level interactive shell

@@ -21,7 +21,7 @@ export default function Home() {
           <Card
             href="/docs/quickstart"
             title="Quickstart"
-            description="Install, init, unlock, clone, dev — in five minutes."
+            description="Install, init, unlock, clone, dev - in five minutes."
           />
           <Card
             href="/docs/concepts/encryption"

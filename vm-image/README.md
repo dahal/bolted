@@ -35,9 +35,9 @@ task vm:build         # from repo root, runs ./mkimage.sh
 
 Outputs land in `vm-image/dist/`:
 
-- `bolted-vm-vm-1.0.0-rootfs.tar.gz` — consumed by `wsl --import` on the
+- `bolted-vm-vm-1.0.0-rootfs.tar.gz` - consumed by `wsl --import` on the
   Windows backend.
-- `bolted-vm-vm-1.0.0.qcow2` — booted by Lima's Alpine template on the
+- `bolted-vm-vm-1.0.0.qcow2` - booted by Lima's Alpine template on the
   Mac backend.
 
 ### Build-host requirements
@@ -75,7 +75,7 @@ a re-publish and a version bump everywhere the image is consumed. Before you
 add a tool, ask whether it belongs in the Bolted profile (spec 15) or a
 devcontainer feature instead. The base is for "every Bolted install, always."
 
-### Worked example — adding `rsync`
+### Worked example - adding `rsync`
 
 Suppose `bolt sync` (a future spec) needs `rsync` in every VM. Procedure:
 
@@ -141,7 +141,7 @@ laptop while spec 07 was implemented:
 | ------------------------------------------------------ | ------ |
 | `docker build --check` (Dockerfile lint)               | Pass   |
 | Full `docker build` succeeds; all 6 tools on `$PATH`   | Pass   |
-| Uncompressed image size (sanity for AC 3)              | 44.8 MB — well under the 200 MB qcow2 ceiling |
+| Uncompressed image size (sanity for AC 3)              | 44.8 MB - well under the 200 MB qcow2 ceiling |
 | `mkimage.sh` shellcheck / `bash -n`                    | Syntax OK |
 | Lima qcow2 boots, six tools present (AC 2, Mac side)   | Requires Lima + qemu-img on the build host; not run in this sandbox |
 | WSL2 import + boot, six tools present (AC 2, Win side) | Requires a Windows host; not run in this sandbox |

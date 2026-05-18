@@ -1,6 +1,6 @@
 ---
 title: bolt unlock
-description: Unlock the encrypted volume — start the VM, mount /bolted/repos.
+description: Unlock the encrypted volume - start the VM, mount /bolted/repos.
 ---
 
 Prompts for the Bolted password, starts the VM if it isn't running, opens the LUKS volume, and mounts it at `/bolted/repos` inside the VM.
@@ -25,7 +25,7 @@ Interactive unlock:
 bolt unlock
 ```
 
-Scripted unlock (mind your shell history — prefer reading from a process substitution or file):
+Scripted unlock (mind your shell history - prefer reading from a process substitution or file):
 
 ```sh
 printf '%s' "$WS_PW" | bolt unlock --password-stdin
@@ -52,6 +52,6 @@ If `mount` fails after the LUKS open succeeds, the mapping is closed automatical
 
 ## See also
 
-- [`bolt lock`](/docs/commands/lock) — the inverse
-- [`bolt status`](/docs/commands/status) — check current lock state
+- [`bolt lock`](/docs/commands/lock) - the inverse
+- [`bolt status`](/docs/commands/status) - check current lock state
 - [Encryption concepts](/docs/concepts/encryption)

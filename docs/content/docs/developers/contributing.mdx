@@ -17,12 +17,12 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 Each layer feeds the next:
 
-1. **`.claude/brainstorm/`** — design exploration. Tradeoffs surfaced, options compared, the "why" captured in prose. Lives outside the public repo (it's in `.claude/` which is gitignored except for the brainstorm subdirectory) because it's history, not current truth. Reading this is how you understand *why* a decision was made.
-2. **`specs/NN-title.md`** — the actionable plan. Status frontmatter (`ready` / `in-progress` / `done`), priority (P0 / P1 / P2), `depends-on` list. Each spec is self-contained with Goal / Scope / Non-goals / Acceptance criteria / References.
-3. **Implementation** — `internal/`, `cmd/`, `vm-image/`. The code that satisfies the spec. Test coverage at 100% (per-function) is the bar.
-4. **`docs/`** — user-facing reference. Updated *in the same change* as the feature ships, not later.
+1. **`.claude/brainstorm/`** - design exploration. Tradeoffs surfaced, options compared, the "why" captured in prose. Lives outside the public repo (it's in `.claude/` which is gitignored except for the brainstorm subdirectory) because it's history, not current truth. Reading this is how you understand *why* a decision was made.
+2. **`specs/NN-title.md`** - the actionable plan. Status frontmatter (`ready` / `in-progress` / `done`), priority (P0 / P1 / P2), `depends-on` list. Each spec is self-contained with Goal / Scope / Non-goals / Acceptance criteria / References.
+3. **Implementation** - `internal/`, `cmd/`, `vm-image/`. The code that satisfies the spec. Test coverage at 100% (per-function) is the bar.
+4. **`docs/`** - user-facing reference. Updated *in the same change* as the feature ships, not later.
 
-If you're adding something new, you write the brainstorm first (or read the existing one), then a spec, then implementation + tests + docs. If you're fixing a bug, you might skip brainstorm and write a small spec or jump straight to the fix — judgment call.
+If you're adding something new, you write the brainstorm first (or read the existing one), then a spec, then implementation + tests + docs. If you're fixing a bug, you might skip brainstorm and write a small spec or jump straight to the fix - judgment call.
 
 ## Picking up a spec
 
@@ -42,7 +42,7 @@ You'll need:
 
 - **Go 1.26+** (the module pins it via `go.mod`).
 - **Bun** for the docs site (`cd docs && bun install`).
-- **Task** (`brew install go-task/tap/go-task` or equivalent) — every common workflow has a Taskfile target.
+- **Task** (`brew install go-task/tap/go-task` or equivalent) - every common workflow has a Taskfile target.
 - Optional but useful: **Lima** on Mac (`brew install lima`) and **WSL2** on Windows for running e2e tests.
 
 ```sh
@@ -76,13 +76,13 @@ task lint           # go vet + oxlint
 
 ## File ownership
 
-The codebase is organised so each spec owns a tight set of files. When you implement a spec, **don't drift outside its scope** — other agents may be in flight on adjacent specs, and a central integration step pulls everything together. Specifically:
+The codebase is organised so each spec owns a tight set of files. When you implement a spec, **don't drift outside its scope** - other agents may be in flight on adjacent specs, and a central integration step pulls everything together. Specifically:
 
 - **`internal/cli/stubs.go`** is integration-only. New commands add their constructor (`newXCmd`) in their own file (`internal/cli/x_cmd.go`); `stubs.go` is updated centrally once.
-- **`internal/cli/lifecycle.go`** has the shared indirection vars (`newBackendFn`, `loadConfigFn`, …). Don't redeclare them in another file — import and reuse.
+- **`internal/cli/lifecycle.go`** has the shared indirection vars (`newBackendFn`, `loadConfigFn`, …). Don't redeclare them in another file - import and reuse.
 - **`internal/cli/dev_cmd.go`** has the lifecycle helpers used by every per-repo command (`requireUnlockedBackend`, `requireRepo`, `stateDirFn`, `newRunnerFn`, `trustGateFn`). Same rule.
 - **`docs/src/lib/shared.ts`** holds the app name and Git config; rarely edited.
-- **`go.mod`** — `go get` only what your spec actually needs. The dep list is intentionally small.
+- **`go.mod`** - `go get` only what your spec actually needs. The dep list is intentionally small.
 
 ## What goes through code review
 
@@ -100,7 +100,7 @@ What reviewers will *not* block on:
 
 - Code style fights that `gofmt` and `oxlint` don't already settle.
 - Coverage strictly below 100% if there's a documented reason (e.g., the `main()` function in `cmd/bolt`).
-- Whether you used Cards vs. inline links in docs — match the local style.
+- Whether you used Cards vs. inline links in docs - match the local style.
 
 ## Adding a new spec
 
@@ -119,7 +119,7 @@ What reviewers will *not* block on:
 4. Update `specs/README.md` to add a row in the index table.
 5. Link to relevant brainstorm sections in References so the reasoning is one click away.
 
-If you're not sure whether something deserves a new spec or fits inside an existing one, lean toward a new spec — they're cheap and easier to track.
+If you're not sure whether something deserves a new spec or fits inside an existing one, lean toward a new spec - they're cheap and easier to track.
 
 ## Adding a new command
 
@@ -140,7 +140,7 @@ Same shape as a new command, plus:
 
 1. **`internal/<thing>/<thing>.go`** with the public API. Doc comment on the package.
 2. **Sentinel errors** (`ErrXyz`) for any failure category callers might want to recognise.
-3. **Indirection vars** for external calls — see [Code patterns](/docs/developers/patterns).
+3. **Indirection vars** for external calls - see [Code patterns](/docs/developers/patterns).
 4. **`internal/<thing>/<thing>_test.go`** with 100% statement coverage.
 5. **If it talks to a real backend**, also `internal/<thing>/<thing>_e2e_test.go` gated by `BOLTED_E2E=1`.
 
@@ -160,7 +160,7 @@ The release pipeline is intentionally manual at the final step. Drafts are auto-
 
 ## What to read next
 
-- [Code patterns](/docs/developers/patterns) — the conventions you'll write code against.
-- [Testing strategy](/docs/developers/testing) — what 100% coverage means here.
-- [Architecture](/docs/developers/architecture) — the layered system and where each package lives.
-- `specs/README.md` — the live work queue.
+- [Code patterns](/docs/developers/patterns) - the conventions you'll write code against.
+- [Testing strategy](/docs/developers/testing) - what 100% coverage means here.
+- [Architecture](/docs/developers/architecture) - the layered system and where each package lives.
+- `specs/README.md` - the live work queue.

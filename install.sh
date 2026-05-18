@@ -1,5 +1,5 @@
 #!/bin/sh
-# install.sh — download and install the bolted CLI (`bolt`)
+# install.sh - download and install the bolted CLI (`bolt`)
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/dahal/bolted/main/install.sh | sh

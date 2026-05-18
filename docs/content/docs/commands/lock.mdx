@@ -1,9 +1,9 @@
 ---
 title: bolt lock
-description: Lock Bolted — unmount the volume, evict the key, optionally stop the VM.
+description: Lock Bolted - unmount the volume, evict the key, optionally stop the VM.
 ---
 
-Unmounts `/bolted/repos`, closes the LUKS mapping (the kernel wipes the key from memory), and — if `--stop-vm` is passed — stops the VM as well.
+Unmounts `/bolted/repos`, closes the LUKS mapping (the kernel wipes the key from memory), and - if `--stop-vm` is passed - stops the VM as well.
 
 ## Synopsis
 
@@ -36,7 +36,7 @@ bolt lock --stop-vm
 1. Load `~/.bolted/config.yaml`.
 2. Build the backend.
 3. Unmount `/bolted/repos` inside the VM.
-4. `cryptsetup close bolted` — the kernel evicts the key.
+4. `cryptsetup close bolted` - the kernel evicts the key.
 5. If `--stop-vm`, stop the VM.
 
 After step 4, the only way back to plaintext is the password.

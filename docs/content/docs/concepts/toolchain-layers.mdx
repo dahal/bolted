@@ -18,13 +18,13 @@ The questions each layer answers:
 - "What does **this person/team** always want?" → profile
 - "What does **this project** need?" → devcontainer
 
-## Layer 1 — VM base image
+## Layer 1 - VM base image
 
 Minimal Alpine. Pre-baked with `podman`, `cryptsetup`, `git`, `openssh`, `bash`, `curl`. Nothing else. The image is intentionally tiny (~150 MB on disk, ~256 MB RAM idle) so it stays cheap to ship and audit.
 
 Anything project- or person-specific does NOT belong here. Toolchains come from the layers below.
 
-## Layer 2 — `bolted.yaml`
+## Layer 2 - `bolted.yaml`
 
 Lives at `~/.bolted/bolted.yaml`. Applied by `bolt provision` (which also runs as the last step of `bolt init`).
 
@@ -79,9 +79,9 @@ bolt provision --from https://example.com/team/bolted.yaml
 
 `bolt provision --check` exits non-zero on drift. Useful for shell prompts and CI.
 
-## Layer 3 — per-repo devcontainer
+## Layer 3 - per-repo devcontainer
 
-Standard `.devcontainer/devcontainer.json` in the repo. This is unmodified upstream devcontainer spec — anything that works with VS Code Dev Containers or the `devcontainer` CLI works here.
+Standard `.devcontainer/devcontainer.json` in the repo. This is unmodified upstream devcontainer spec - anything that works with VS Code Dev Containers or the `devcontainer` CLI works here.
 
 ```jsonc
 {

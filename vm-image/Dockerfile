@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6
 #
-# Bolted VM base image — layer 1 of the toolchain stack.
+# Bolted VM base image - layer 1 of the toolchain stack.
 #
 # Contains only the always-on plumbing every Bolted install needs.
 # Anything user-customizable (language toolchains, gh/gcloud/etc., dotfiles)
@@ -14,12 +14,12 @@ ARG ALPINE_VERSION=3.20
 FROM alpine:${ALPINE_VERSION}
 
 # Exactly the six base tools called out by spec 07. No extras.
-#   podman      — container runtime inside the VM
-#   cryptsetup  — LUKS unlock/lock of the encrypted volume
-#   git         — repo clone inside the volume
-#   openssh     — exec channel into the VM
-#   bash        — predictable shell for bolt exec / scripts
-#   curl        — bootstrap downloads (devcontainer CLI, features)
+#   podman      - container runtime inside the VM
+#   cryptsetup  - LUKS unlock/lock of the encrypted volume
+#   git         - repo clone inside the volume
+#   openssh     - exec channel into the VM
+#   bash        - predictable shell for bolt exec / scripts
+#   curl        - bootstrap downloads (devcontainer CLI, features)
 RUN apk add --no-cache \
         podman \
         cryptsetup \
@@ -29,7 +29,7 @@ RUN apk add --no-cache \
         curl \
     && rm -rf /var/cache/apk/*
 
-# Podman rootless prerequisites — enables containers to start without
+# Podman rootless prerequisites - enables containers to start without
 # requiring further package installs at first boot.
 RUN apk add --no-cache --virtual .podman-runtime \
         fuse-overlayfs \
