@@ -1,9 +1,4 @@
 // Command bolt is the entrypoint for the Bolted CLI.
-//
-// The same binary serves the invocation `bolt` — the alias is
-// name detection lets help text reflect the binary name as installed.
-// 
-// 
 package main
 
 import (
