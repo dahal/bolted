@@ -1,6 +1,6 @@
 ---
 title: bolt passwd
-description: Change the Bolted passphrase (LUKS slot rotation).
+description: Change the Bolted password (LUKS slot rotation).
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -9,10 +9,15 @@ Rotates the LUKS passphrase atomically. Prompts for the current password, verifi
 
 If the keychain integration is enabled (`keychain: true` in `~/.bolted/config.yaml`), the stored secret is updated after the rotation succeeds.
 
+<Callout>
+Also available as **`bolt password`** — same command, fuller name. Pick whichever reads better in your shell history.
+</Callout>
+
 ## Synopsis
 
 ```sh
-bolt passwd
+bolt passwd        # Unix tradition
+bolt password      # alias, identical behaviour
 ```
 
 No flags.

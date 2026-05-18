@@ -21,6 +21,7 @@ var reservedSubcommands = []string{
 	"logs",
 	"ls",
 	"passwd",
+	"password", // alias for `passwd`; kept reserved so passthrough doesn't grab it
 	"ports",
 	"profiles",
 	"provision",
