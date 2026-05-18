@@ -1,29 +1,36 @@
 # Bolted
 
-**A password-locked, encrypted Linux dev environment for Mac and Windows.** Run your normal dev commands prefixed with `bolt` - `bolt git clone …`, `bolt npm install`, `bolt gh auth login`, `bolt kubectl …` - and they execute inside an isolated, encrypted VM. When you lock it, the bytes on disk are ciphertext.
+We are seeing more and more supply-chain attacks against developer toolchains. A backdoored dependency. A typo-squatted package. A compromised editor extension. A third-party AI skill, MCP server, or agent plugin with broad shell access. An AI coding assistant acting on a prompt-injected README, issue, or web page. An AI-generated PR pulling in malware the model hallucinated into existence. Any one of them runs arbitrary code as you, the moment you install or invoke it. When that code lands on a developer's laptop, the cleanup is rarely cheap: weeks of incident response, rotated credentials, customers to notify, source leaked, repos held to ransom. Lockfile audits and SBOMs help you trace the damage afterwards. They don't stop the `postinstall` that has already shipped your SSH keys to a server you've never heard of.
 
-Docs: **[bolted.sh](https://bolted.sh)** · [Quickstart](https://bolted.sh/docs/quickstart) · [Threat model](https://bolted.sh/docs/concepts/encryption)
+**Bolted is a password-locked, encrypted Linux dev environment for Mac and Windows.** Prefix your normal commands with `bolt` - `bolt git clone`, `bolt npm install`, `bolt kubectl …` - and they run inside an isolated VM on an encrypted disk. When you walk away, `bolt lock` turns the volume back into ciphertext. The host can't reach into the VM, and the VM can't reach out to the host: a compromised package gets exactly one repo's dev container, and a compromised host can't touch your source.
+
+If you ship software for a living - or for a team that does - that's a contained blast radius worth installing in five minutes.
+
+**Docs:**
+
+- [About](https://bolted.sh)
+- [Quickstart](https://bolted.sh/docs/quickstart)
+- [CLI reference](https://bolted.sh/docs/commands)
 
 ---
 
-## Why Bolted
-
-If you take supply-chain risk seriously, your laptop is the soft spot. A single `npm install`, `pip install`, `cargo build`, or `brew install` can run arbitrary code as your user - with access to your SSH keys, cloud credentials, browser cookies, source trees, and every other repo you've ever cloned. Lockfile audits and SBOMs help, but they don't stop a postinstall script that has already run.
-
-Bolted moves the dangerous half of your day - package installs, build scripts, dev servers, AI agents writing code, anything that touches third-party code - **into an isolated Linux VM with an encrypted disk**. The isolation runs both ways:
+## What it protects
 
 **The VM can't corrupt the host:**
 
-- **Malicious `postinstall` / `build.rs` / `setup.py` scripts** run inside the VM. They cannot reach your host shell, your `~/.ssh`, your keychain, your browser cookies, or repos for other clients.
-- **A compromised npm / PyPI / crates package** is sandboxed to one repo's dev container, not your whole machine.
+- A malicious `postinstall` / `build.rs` / `setup.py` runs inside the dev container, with no path to your host shell, `~/.ssh`, OS keychain, browser cookies, or other clients' repos.
+- A compromised `npm`, `pip`, `cargo`, or Homebrew package is bounded to the one repo's dev container. It cannot pivot to other repos on the same Bolted instance.
 
 **The host can't corrupt the VM:**
 
-- **An already-compromised host** - a backdoored editor extension, a malicious `brew`-installed CLI, a sideloaded macro, malware from a phishing email - cannot read, modify, or inject code into the source trees, dependencies, or build outputs inside the VM. There is no host-side filesystem mount of the encrypted volume; the host sees one opaque disk image and nothing more.
-- **Host-side telemetry, A/V, MDM probes, screen recorders** can't snoop on the source you're working on or the secrets your dev containers hold.
-- **A lost or stolen laptop** yields ciphertext. The LUKS volume is opened by a password you set; lose the password, lose the data.
+- An already-compromised host - a backdoored editor extension, a malicious `brew`-installed CLI, malware sideloaded from a phishing email - cannot read or modify the source, dependencies, or build outputs inside the VM. There is no host-side mount of the encrypted volume; the host sees one opaque disk image and nothing more.
+- Host-side telemetry, A/V hooks, MDM probes, and screen recorders can't snoop on the source you're working on or the secrets your dev containers hold.
 
-It's the security posture of a remote dev VM, without giving up the ergonomics of working locally. Same UX on macOS (via Lima) and Windows (via WSL2).
+**At rest:**
+
+- A lost or stolen laptop yields ciphertext. The LUKS2 volume is opened by an Argon2id-derived key from a password you set. Lose the password, lose the data.
+
+Same UX on macOS (via Lima) and Windows (via WSL2).
 
 ## How it works
 
