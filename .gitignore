@@ -15,3 +15,6 @@ coverage.html
 
 # vm-image build artifacts
 /vm-image/dist/
+
+# Local-only spec material
+/specs/
