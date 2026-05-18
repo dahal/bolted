@@ -1,0 +1,19 @@
+{
+  "title": "CLI reference",
+  "pages": [
+    "init",
+    "unlock",
+    "lock",
+    "status",
+    "shell",
+    "dev",
+    "exec",
+    "ls",
+    "stop",
+    "rm",
+    "provision",
+    "passwd",
+    "keychain",
+    "passthrough"
+  ]
+}
