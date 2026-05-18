@@ -1,10 +1,6 @@
 # Bolted
 
-We are seeing more and more supply-chain attacks against developer toolchains. A backdoored dependency. A typo-squatted package. A compromised editor extension. A third-party AI skill, MCP server, or agent plugin with broad shell access. An AI coding assistant acting on a prompt-injected README, issue, or web page. An AI-generated PR pulling in malware the model hallucinated into existence. Any one of them runs arbitrary code as you, the moment you install or invoke it. When that code lands on a developer's laptop, the cleanup is rarely cheap: weeks of incident response, rotated credentials, customers to notify, source leaked, repos held to ransom. Lockfile audits and SBOMs help you trace the damage afterwards. They don't stop the `postinstall` that has already shipped your SSH keys to a server you've never heard of.
-
-**Bolted is a password-locked, encrypted Linux dev environment for Mac and Windows.** Prefix your normal commands with `bolt` - `bolt git clone`, `bolt npm install`, `bolt kubectl …` - and they run inside an isolated VM on an encrypted disk. When you walk away, `bolt lock` turns the volume back into ciphertext. The host can't reach into the VM, and the VM can't reach out to the host: a compromised package gets exactly one repo's dev container, and a compromised host can't touch your source.
-
-If you ship software for a living - or for a team that does - that's a contained blast radius worth installing in five minutes.
+> **An encrypted, password-locked Linux dev VM for Mac and Windows - so a backdoored package, hijacked AI agent, or compromised host can't reach the source you ship.**
 
 **Docs:**
 
@@ -13,6 +9,14 @@ If you ship software for a living - or for a team that does - that's a contained
 - [CLI reference](https://bolted.sh/docs/commands)
 
 ---
+
+## What is Bolted?
+
+We are seeing more and more supply-chain attacks against developer toolchains. A backdoored dependency. A typo-squatted package. A compromised editor extension. A third-party AI skill, MCP server, or agent plugin with broad shell access. An AI coding assistant acting on a prompt-injected README, issue, or web page. An AI-generated PR pulling in malware the model hallucinated into existence. Any one of them runs arbitrary code as you, the moment you install or invoke it. When that code lands on a developer's laptop, the cleanup is rarely cheap: weeks of incident response, rotated credentials, customers to notify, source leaked, repos held to ransom. Lockfile audits and SBOMs help you trace the damage afterwards. They don't stop the `postinstall` that has already shipped your SSH keys to a server you've never heard of.
+
+**Bolted is a password-locked, encrypted Linux dev environment for Mac and Windows.** Prefix your normal commands with `bolt` - `bolt git clone`, `bolt npm install`, `bolt kubectl …` - and they run inside an isolated VM on an encrypted disk. When you walk away, `bolt lock` turns the volume back into ciphertext. The host can't reach into the VM, and the VM can't reach out to the host: a compromised package gets exactly one repo's dev container, and a compromised host can't touch your source.
+
+If you ship software for a living - or for a team that does - that's a contained blast radius worth installing in five minutes.
 
 ## What it protects
 
@@ -31,6 +35,18 @@ If you ship software for a living - or for a team that does - that's a contained
 - A lost or stolen laptop yields ciphertext. The LUKS2 volume is opened by an Argon2id-derived key from a password you set. Lose the password, lose the data.
 
 Same UX on macOS (via Lima) and Windows (via WSL2).
+
+## Responsible use
+
+Bolted contains the blast radius. It does not replace judgment. Anything you install or invoke *inside* the VM still runs as you, against the source you care about. Throw experimental, unvetted, or "let me just try this" dependencies into the same Bolted instance as your serious work and you have rebuilt the exact problem you came here to solve, one layer deeper.
+
+This tool is built for developers and teams who:
+
+- **Treat the encrypted volume the way they treat a production server.** Only reviewed, pre-authorized code runs there. New dependency, new MCP server, new editor extension, new AI skill - all go through the same gate as anything you would deploy.
+- **Keep experimental work isolated.** Curiosity-driven, throwaway, or "I'm just testing this AI agent / scraping library / random GitHub clone" work belongs in a separate Bolted instance, a separate dev container, or not on this machine at all - never alongside repos that hold customer data, deploy keys, or revenue-critical source.
+- **Don't let "it's in a VM" become an excuse.** Password hygiene, MFA, OS patches, code review before install, and a healthy distrust of `curl | sh` still matter. The VM raises the cost of an attack; it doesn't pay it for you.
+
+Strong primitives plus careless habits is still a compromised laptop. If that posture doesn't fit how you work, Bolted is the wrong tool.
 
 ## How it works
 
