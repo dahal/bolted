@@ -12,7 +12,7 @@
     "stop",
     "rm",
     "provision",
-    "passwd",
+    "password",
     "keychain",
     "passthrough"
   ]

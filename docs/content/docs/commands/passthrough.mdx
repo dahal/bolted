@@ -56,11 +56,13 @@ bolt -- ls /bolted/repos    # runs system `ls`, not `bolt ls`
 ## Reserved subcommands (never passed through)
 
 ```
-completion  config   dev      exec     export   forward  help
-import      init     keychain lock     logs     ls       passwd
-ports       profiles provision restart rm       shell    status
-stop        trust    unforward unlock  version
+completion  config   dev      exec     export   forward   help
+import      init     keychain lock     logs     ls        password
+passwd      ports    profiles provision restart rm        shell
+status      stop     trust    unforward unlock  version
 ```
+
+(`passwd` is an alias for `password`.)
 
 Some of these aren't implemented yet — invoking one prints a "not yet implemented" message rather than falling through to the VM.
 

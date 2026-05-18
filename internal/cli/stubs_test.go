@@ -43,6 +43,11 @@ func TestRegisterSubcommands_EveryReservedNamePresent(t *testing.T) {
 		// cmd.Use can include argument annotations (e.g. "dev <repo>").
 		// cmd.Name() returns just the leading word.
 		registered[c.Name()] = true
+		// Aliases also count as "registered" for routing purposes —
+		// e.g. `passwd` is an alias of `password`.
+		for _, a := range c.Aliases {
+			registered[a] = true
+		}
 	}
 	for _, name := range reservedSubcommands {
 		if commandsProvidedByCobra[name] {

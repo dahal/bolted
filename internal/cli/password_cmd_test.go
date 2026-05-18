@@ -442,20 +442,30 @@ func TestRunPasswd_RemoveKeyslotFails(t *testing.T) {
 
 // ---- Cobra constructor -----------------------------------------------------
 
-func TestNewPasswdCmd_Use(t *testing.T) {
-	cmd := newPasswdCmd()
-	if cmd.Use != "passwd" {
-		t.Errorf("Use = %q, want passwd", cmd.Use)
+func TestNewPasswordCmd_Use(t *testing.T) {
+	cmd := newPasswordCmd()
+	if cmd.Use != "password" {
+		t.Errorf("Use = %q, want password", cmd.Use)
 	}
 	if cmd.Short == "" {
 		t.Error("Short description should not be empty")
+	}
+	// Unix muscle-memory: `bolt passwd` must still work.
+	foundPasswd := false
+	for _, a := range cmd.Aliases {
+		if a == "passwd" {
+			foundPasswd = true
+		}
+	}
+	if !foundPasswd {
+		t.Errorf("expected 'passwd' in Aliases, got %v", cmd.Aliases)
 	}
 }
 
 func TestPasswdCmd_RunE_HappyPath(t *testing.T) {
 	s := &passwdStubs{}
 	s.install(t)
-	cmd := newPasswdCmd()
+	cmd := newPasswordCmd()
 	cmd.SetOut(io.Discard)
 	cmd.SetErr(io.Discard)
 	cmd.SetArgs([]string{})

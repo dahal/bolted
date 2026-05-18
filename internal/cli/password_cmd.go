@@ -48,15 +48,16 @@ var newPasswdVolumeFn = func(b backend.Backend, opts volume.Options) passwdVolum
 // real keychain.
 var newKeychainStoreFn = keychain.System
 
-// newPasswdCmd builds the `bolt passwd` command (Unix tradition) with
-// `bolt password` as a more discoverable alias. The command performs an
-// atomic LUKS slot rotation: add the new key, verify it unlocks, then
-// remove the old. On any step we error and bail without removing the
-// old slot, so a partial failure never leaves the user locked out.
-func newPasswdCmd() *cobra.Command {
+// newPasswordCmd builds the `bolt password` command. `bolt passwd` is
+// retained as an alias for users with that Unix muscle memory.
+// The command performs an atomic LUKS slot rotation: add the new
+// key, verify it unlocks, then remove the old. On any step we
+// error and bail without removing the old slot, so a partial
+// failure never leaves the user locked out.
+func newPasswordCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "passwd",
-		Aliases: []string{"password"},
+		Use:     "password",
+		Aliases: []string{"passwd"},
 		Short:   "Change the Bolted password (LUKS slot rotation)",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {

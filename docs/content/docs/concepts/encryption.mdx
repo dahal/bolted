@@ -57,14 +57,14 @@ After step 3, the only path back to plaintext is the password.
 
 ## Rotating the password
 
-`bolt passwd` rotates the LUKS passphrase atomically:
+`bolt password` rotates the LUKS passphrase atomically:
 
 1. Verify the current password.
 2. Add a new keyslot with the new password (both passwords now work).
 3. Verify the new keyslot.
 4. Remove the old keyslot.
 
-If any step fails before step 4, the old password still unlocks the volume — re-run `bolt passwd`. Data is never re-encrypted; this is just a slot rotation.
+If any step fails before step 4, the old password still unlocks the volume — re-run `bolt password`. Data is never re-encrypted; this is just a slot rotation.
 
 ## Threat model — what this protects
 

@@ -51,7 +51,7 @@ func registerSubcommands(root *cobra.Command) {
 	root.AddCommand(newProfilesCmd())
 
 	// Security (specs 17, 18).
-	root.AddCommand(newPasswdCmd())
+	root.AddCommand(newPasswordCmd())
 	root.AddCommand(newKeychainCmd())
 	root.AddCommand(newTrustCmd())
 
@@ -80,7 +80,8 @@ func registerSubcommands(root *cobra.Command) {
 		"unforward": true,
 		"provision": true,
 		"profiles":  true,
-		"passwd":    true,
+		"passwd":    true, // alias; the real registration is "password"
+		"password":  true,
 		"keychain":  true,
 		"trust":     true,
 		"logs":      true,
