@@ -52,10 +52,10 @@ type limaConfig struct {
 	Memory string `yaml:"memory"`
 	// Disk is the maximum sparse disk size as a Lima size string.
 	Disk string `yaml:"disk"`
-	// MountType pinned to "none" because we don't share host paths
-	// (Bolted volumes mount inside the VM, not from the host).
-	MountType string `yaml:"mountType"`
-	// Mounts is intentionally empty for the same reason.
+	// Mounts is intentionally empty: Bolted volumes mount inside the
+	// VM, not from the host. We do not set `mountType` — Lima rejects
+	// any value other than reverse-sshfs/9p/virtiofs/wsl2, and with
+	// no mounts the field has nothing to apply to.
 	Mounts []any `yaml:"mounts"`
 	// PortForwards mirrors loadForwards' contents so EnsureVM picks up
 	// previously requested forwards on every render.
@@ -117,11 +117,10 @@ func writeLimaYAML(path string, spec backend.VMSpec, forwards []portForward) err
 			{Location: alpineImageARM64, Arch: "aarch64"},
 			{Location: alpineImageAMD64, Arch: "x86_64"},
 		},
-		CPUs:      spec.CPUs,
-		Memory:    fmt.Sprintf("%dMiB", spec.MemoryMB),
-		Disk:      fmt.Sprintf("%dGiB", spec.DiskGB),
-		MountType: "none",
-		Mounts:    []any{},
+		CPUs:   spec.CPUs,
+		Memory: fmt.Sprintf("%dMiB", spec.MemoryMB),
+		Disk:   fmt.Sprintf("%dGiB", spec.DiskGB),
+		Mounts: []any{},
 	}
 	for _, f := range forwards {
 		cfg.PortForwards = append(cfg.PortForwards, limaPortForward{
