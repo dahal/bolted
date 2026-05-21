@@ -12,8 +12,9 @@
     "build": "waku build",
     "start": "waku start",
     "types:check": "fumadocs-mdx && tsc --noEmit",
-    "postinstall": "fumadocs-mdx",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "postinstall": "fumadocs-mdx"
   },
   "dependencies": {
     "@takumi-rs/image-response": "^1.1.2",
@@ -21,11 +22,11 @@
     "fumadocs-mdx": "14.3.2",
     "fumadocs-ui": "16.8.7",
     "lucide-react": "^1.14.0",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "react-server-dom-webpack": "^19.2.6",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-server-dom-webpack": "^19.2.5",
     "tailwind-merge": "^3.5.0",
-    "waku": "1.0.0-alpha.10"
+    "waku": "1.0.0-alpha.9"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.4",
@@ -36,6 +37,7 @@
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
-    "oxlint": "^1.63.0"
+    "oxlint": "^1.63.0",
+    "oxfmt": "^0.48.0"
   }
 }
