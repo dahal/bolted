@@ -1,13 +1,13 @@
-import { Link } from 'waku';
-import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Link } from "waku";
+import { Card, Cards } from "fumadocs-ui/components/card";
 
 export default function Home() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12">
       <h1 className="font-semibold text-3xl mb-3">Bolted</h1>
       <p className="text-fd-muted-foreground max-w-xl mb-6">
-        A password-locked, encrypted Linux dev environment CLI for Mac and Windows.
-        Run normal dev commands prefixed with <code>bolt</code> and they execute inside an isolated, encrypted VM.
+        A password-locked, encrypted Linux dev environment CLI for Mac and Windows. Run normal dev
+        commands prefixed with <code>bolt</code> and they execute inside an isolated, encrypted VM.
       </p>
       <Link
         to="/docs"
@@ -41,6 +41,6 @@ export default function Home() {
 
 export async function getConfig() {
   return {
-    render: 'static',
+    render: "static",
   };
 }

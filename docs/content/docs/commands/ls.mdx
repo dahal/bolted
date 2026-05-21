@@ -13,8 +13,8 @@ bolt ls [--json]
 
 ## Flags
 
-| Flag | Description |
-|---|---|
+| Flag     | Description                                   |
+| -------- | --------------------------------------------- |
 | `--json` | Emit machine-readable JSON instead of a table |
 
 ## Examples
@@ -40,9 +40,9 @@ bolt ls --json
 
 ```json
 [
-  { "name": "api",  "status": "running", "size": "420M" },
+  { "name": "api", "status": "running", "size": "420M" },
   { "name": "docs", "status": "stopped", "size": "60M" },
-  { "name": "web",  "status": "running", "size": "1.2G" }
+  { "name": "web", "status": "running", "size": "1.2G" }
 ]
 ```
 
@@ -55,11 +55,11 @@ bolt ls --json
 
 ## Exit codes
 
-| Code | Meaning |
-|---|---|
-| `0` | Success |
-| `1` | Generic error |
-| `2` | Bolted not initialised, VM not running, or volume locked |
+| Code | Meaning                                                  |
+| ---- | -------------------------------------------------------- |
+| `0`  | Success                                                  |
+| `1`  | Generic error                                            |
+| `2`  | Bolted not initialised, VM not running, or volume locked |
 
 ## See also
 

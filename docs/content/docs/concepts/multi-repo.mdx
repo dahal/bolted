@@ -4,7 +4,7 @@ description: One VM hosts many repos. Each gets its own dev container with isola
 icon: Boxes
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 A single Bolted VM is designed to host **many repos**, with **multiple dev containers running concurrently**. The layout is:
 
@@ -53,7 +53,9 @@ This is the tricky part: two repos can't both own host `localhost:3000`.
 - **On the host, the first repo to claim a port wins.** The second repo that wants the same port is remapped to the next free port and the new mapping is reported back.
 
 <Callout type="info">
-The dedicated `bolt ports` command for inspecting host-port mappings is tracked in [spec 14](https://github.com/dahal/bolted/blob/main/specs/14-port-forwarding.md) and not yet implemented. For now, `bolt ls` shows which containers are running.
+  The dedicated `bolt ports` command for inspecting host-port mappings is tracked in [spec
+  14](https://github.com/dahal/bolted/blob/main/specs/14-port-forwarding.md) and not yet
+  implemented. For now, `bolt ls` shows which containers are running.
 </Callout>
 
 ## Resource sharing
@@ -86,4 +88,4 @@ Not built in for MVP. The crude workaround: dedicate a "service repo" and run Po
 
 ## Want the design rationale?
 
-See [`.claude/brainstorm/02-architecture.md`](https://github.com/dahal/bolted/blob/main/.claude/brainstorm/02-architecture.md) - specifically the *Multi-repo runtime model* and *Port forwarding* sections.
+See [`.claude/brainstorm/02-architecture.md`](https://github.com/dahal/bolted/blob/main/.claude/brainstorm/02-architecture.md) - specifically the _Multi-repo runtime model_ and _Port forwarding_ sections.

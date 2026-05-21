@@ -4,15 +4,15 @@ description: What gets unit-tested vs. what needs real hardware, how the mocks w
 icon: FlaskConical
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 ## Three test tiers
 
-| Tier | Where it runs | What it proves |
-|---|---|---|
-| **Unit** | Every `go test ./...` invocation, no special setup | Pure logic + every code branch via mock backends. Target: 100% statement coverage on every internal package. |
-| **Integration** | `go test ./... -tags integration` (none yet - placeholder tier) | Higher-fidelity tests that still use mocks but stitch multiple packages together. Currently folded into unit tests. |
-| **End-to-end** | `BOLTED_E2E=1 go test ./...` on real hardware | Real Lima / WSL2 / cryptsetup / podman behaviour. Validates that what we *think* the system calls do matches what they actually do. |
+| Tier            | Where it runs                                                   | What it proves                                                                                                                      |
+| --------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Unit**        | Every `go test ./...` invocation, no special setup              | Pure logic + every code branch via mock backends. Target: 100% statement coverage on every internal package.                        |
+| **Integration** | `go test ./... -tags integration` (none yet - placeholder tier) | Higher-fidelity tests that still use mocks but stitch multiple packages together. Currently folded into unit tests.                 |
+| **End-to-end**  | `BOLTED_E2E=1 go test ./...` on real hardware                   | Real Lima / WSL2 / cryptsetup / podman behaviour. Validates that what we _think_ the system calls do matches what they actually do. |
 
 The unit tier is where almost everything lives. The e2e tier exists to catch the things you can only validate against the real binary - argv format drift, error message variants, kernel quirks.
 
@@ -62,7 +62,7 @@ func TestSomething(t *testing.T) {
 }
 ```
 
-The mock is *recording*, not *behavioural*. It doesn't model real backend semantics (a `StartVM` followed by `IsRunning` won't return `true` unless you ask it to). Tests configure the canned responses they expect.
+The mock is _recording_, not _behavioural_. It doesn't model real backend semantics (a `StartVM` followed by `IsRunning` won't return `true` unless you ask it to). Tests configure the canned responses they expect.
 
 ## Per-package test helpers
 
@@ -72,7 +72,7 @@ Most packages with non-trivial state also expose a test helper that sets up + te
 - **`internal/cli/dev_cmd_test.go::withRunnerStub`** - swaps `newRunnerFn` for a fake `devcontainer.Runner` (`fakeRunner`) and neutralises `trustGateFn`. Used by every test that runs through `runDev` or `runExec`.
 - **`internal/cli/dev_cmd_test.go::installDevSetup`** - composes the above with a state-dir tempdir + mock backend response queue. The shorthand for "give me a fully wired runDev test."
 
-The pattern: a test should *opt into* the real implementation of any seam it specifically wants to exercise. Default behaviour is fully stubbed so the test surface stays scoped to what the test is actually about.
+The pattern: a test should _opt into_ the real implementation of any seam it specifically wants to exercise. Default behaviour is fully stubbed so the test surface stays scoped to what the test is actually about.
 
 ## E2E tests - the `BOLTED_E2E=1` contract
 
@@ -93,11 +93,11 @@ func TestFoo_E2E(t *testing.T) {
 
 Packages with e2e tests today:
 
-| Package | What the e2e validates | Required environment |
-|---|---|---|
-| `internal/backend/lima/` | Real `limactl` create/start/exec/stop/delete | Mac with Lima installed |
-| `internal/backend/wsl2/` | Real `wsl.exe` import/exec/unregister | Windows with WSL2 + rootfs tar |
-| `internal/volume/` | Real `cryptsetup` LUKS lifecycle | Linux host with dm-crypt + cryptsetup |
+| Package                  | What the e2e validates                       | Required environment                  |
+| ------------------------ | -------------------------------------------- | ------------------------------------- |
+| `internal/backend/lima/` | Real `limactl` create/start/exec/stop/delete | Mac with Lima installed               |
+| `internal/backend/wsl2/` | Real `wsl.exe` import/exec/unregister        | Windows with WSL2 + rootfs tar        |
+| `internal/volume/`       | Real `cryptsetup` LUKS lifecycle             | Linux host with dm-crypt + cryptsetup |
 
 E2E tests do **not** run in normal CI. They're a manual checklist before cutting a release - or, eventually, a separate CI job that spins up the right hardware.
 
@@ -106,7 +106,7 @@ E2E tests do **not** run in normal CI. They're a manual checklist before cutting
 Honest scope:
 
 - **The actual production binaries on the actual three target OSes.** CI cross-compiles all three from a Linux runner but doesn't execute the windows-amd64 or darwin-amd64 binaries. The first time those run is on a real machine. Acceptable risk because the surface area exercised at boot is small and `cli.Execute` itself is 100% covered.
-- **The devcontainer CLI argv format.** Our `internal/devcontainer/devcontainer.go` constructs the `devcontainer up` invocation; we test that the *args* we'd pass are correct. We don't test that `devcontainer up` then actually does what we expect - that's the devcontainer project's contract. If they change the JSON envelope shape on stdout, our parse breaks at e2e time.
+- **The devcontainer CLI argv format.** Our `internal/devcontainer/devcontainer.go` constructs the `devcontainer up` invocation; we test that the _args_ we'd pass are correct. We don't test that `devcontainer up` then actually does what we expect - that's the devcontainer project's contract. If they change the JSON envelope shape on stdout, our parse breaks at e2e time.
 - **Race conditions in `bolt lock` while `bolt dev` is running.** The state files are written atomically (tempfile + rename) so the file itself never corrupts, but the semantic outcome of "user races their own commands" isn't tested. Listed as a known sharp edge.
 - **Real cryptsetup error message text.** `internal/volume` matches on substrings ("No key available with this passphrase", "No usable keyslot is available") that come from cryptsetup 2.x. If a future cryptsetup version changes wording, e2e catches it; unit tests pass either way because they use canned `ExecResult.Stderr`.
 
@@ -136,8 +136,9 @@ The bar that lands in this codebase:
 2. **Sentinel-checked, not string-matched.** `errors.Is(err, volume.ErrBadPassword)` not `strings.Contains(err.Error(), "bad password")`. Error messages are for humans; tests match on identity.
 3. **Per-branch.** Every `if err != nil { return err }`, every `default:` in a switch, every `case` should have at least one test that lands in it. The indirection-var pattern is what makes this achievable.
 4. **t.TempDir() for filesystem.** Never `/tmp/foo` or `os.MkdirTemp` with manual cleanup. `t.TempDir()` auto-cleans on test exit.
-5. **t.Cleanup() for state.** Swap a package var? Register a `t.Cleanup(func() { x = orig })` *immediately*, before the actual reassignment, so a panic mid-test still restores it.
+5. **t.Cleanup() for state.** Swap a package var? Register a `t.Cleanup(func() { x = orig })` _immediately_, before the actual reassignment, so a panic mid-test still restores it.
 
 <Callout type="warn">
-Tests that aren't deterministic don't belong here. If a test depends on timing, system load, or wall-clock drift, fix the test (usually by injecting a `clockFn`); don't add retries.
+  Tests that aren't deterministic don't belong here. If a test depends on timing, system load, or
+  wall-clock drift, fix the test (usually by injecting a `clockFn`); don't add retries.
 </Callout>

@@ -4,18 +4,18 @@ description: How locking and unlocking works, the threat model it defends, and w
 icon: Lock
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 Bolted keeps repo contents inside a LUKS-encrypted volume that lives entirely within the VM. When locked, the bytes on disk are ciphertext. Unlocked, the plaintext exists only inside the guest VM - your host shell can't read or write it.
 
 ## Primitives
 
-| Layer | Choice | Why |
-|---|---|---|
-| Full-disk encryption | LUKS2 | Standard, audited, ships with Alpine |
-| Key derivation | Argon2id | Memory-hard, resists GPU attacks |
-| Block layer | dm-crypt | Underlies LUKS |
-| Key residence | VM kernel keyring | Wiped by `cryptsetup close` on `lock` |
+| Layer                | Choice            | Why                                   |
+| -------------------- | ----------------- | ------------------------------------- |
+| Full-disk encryption | LUKS2             | Standard, audited, ships with Alpine  |
+| Key derivation       | Argon2id          | Memory-hard, resists GPU attacks      |
+| Block layer          | dm-crypt          | Underlies LUKS                        |
+| Key residence        | VM kernel keyring | Wiped by `cryptsetup close` on `lock` |
 
 The encrypted disk image (`~/.bolted/volume.img` on the host) is presented to the VM as a block device. **LUKS lives inside the VM.** The host never holds the key.
 
@@ -70,12 +70,12 @@ If any step fails before step 4, the old password still unlocks the volume - re-
 
 - **Locked + malicious host process.** While locked, `volume.img` is ciphertext at the block level. A host process reading the file can't recover repo contents without the password.
 - **Locked + lost laptop.** Same as above. Argon2id makes offline brute force expensive for strong passwords.
-- **Unlocked + host-side dev tooling.** Host processes (browsers, editors, package managers running on the host, malicious npm/cargo postinstall scripts in *host* projects) cannot reach into the VM's filesystem.
+- **Unlocked + host-side dev tooling.** Host processes (browsers, editors, package managers running on the host, malicious npm/cargo postinstall scripts in _host_ projects) cannot reach into the VM's filesystem.
 
 ## Threat model - what this does NOT protect
 
 <Callout type="warn">
-Encryption is at-rest only. None of the following are defended against:
+  Encryption is at-rest only. None of the following are defended against:
 </Callout>
 
 - **Unlocked + root on the host.** An attacker with host root can read the VM's memory and extract repo contents.

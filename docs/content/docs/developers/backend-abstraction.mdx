@@ -4,7 +4,7 @@ description: The per-OS Backend interface that makes the rest of the codebase OS
 icon: Box
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 The `Backend` interface in `internal/backend/backend.go` is the seam between everything-above-it (which is pure Go logic, OS-agnostic, fully unit-testable) and everything-below-it (which shells out to `limactl` or `wsl.exe` or `cryptsetup` and only really runs on its target OS).
 
@@ -52,15 +52,15 @@ Deliberately small. Eight methods, three supporting types. Anything more elabora
 
 Shells out to `limactl` via an injectable `runner` interface. The runner's only job is to spawn external processes; tests substitute a `fakeRunner` that records every call and returns canned bytes.
 
-| Method | What it actually runs |
-|---|---|
-| `EnsureVM` | Writes a lima.yaml from `VMSpec` into `~/.bolted/vm/`, runs `limactl create`. Idempotent - if the VM exists per `limactl ls --json`, skips create. |
-| `StartVM` / `StopVM` | `limactl start <name>` / `limactl stop <name>`. |
-| `IsRunning` | Parses `limactl ls --json` (NDJSON), looks for `name == bolted && status == "Running"`. |
-| `Exec` | Wraps the command in `sh -c "cd <cwd> && exec <cmd…>"` for cwd, env-var prefix for env, `limactl shell -t` for TTY. Returns the captured `ExecResult`. |
-| `ForwardPort` | Persists the request into `<dataDir>/portForwards.json` and embeds it into the next `lima.yaml`. Lima's runtime port-forward API has no stable surface across versions, so persistence is the source of truth. |
-| `UnforwardPort` | Removes from the tracking file. |
-| `DeleteVM` | `limactl delete <name> --force`. |
+| Method               | What it actually runs                                                                                                                                                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EnsureVM`           | Writes a lima.yaml from `VMSpec` into `~/.bolted/vm/`, runs `limactl create`. Idempotent - if the VM exists per `limactl ls --json`, skips create.                                                             |
+| `StartVM` / `StopVM` | `limactl start <name>` / `limactl stop <name>`.                                                                                                                                                                |
+| `IsRunning`          | Parses `limactl ls --json` (NDJSON), looks for `name == bolted && status == "Running"`.                                                                                                                        |
+| `Exec`               | Wraps the command in `sh -c "cd <cwd> && exec <cmd…>"` for cwd, env-var prefix for env, `limactl shell -t` for TTY. Returns the captured `ExecResult`.                                                         |
+| `ForwardPort`        | Persists the request into `<dataDir>/portForwards.json` and embeds it into the next `lima.yaml`. Lima's runtime port-forward API has no stable surface across versions, so persistence is the source of truth. |
+| `UnforwardPort`      | Removes from the tracking file.                                                                                                                                                                                |
+| `DeleteVM`           | `limactl delete <name> --force`.                                                                                                                                                                               |
 
 `requireLima()` runs before `EnsureVM` / `StartVM` and prints a clear "install Lima first" error if `limactl` isn't on `$PATH`. It's deliberately not called from every method - unit tests would have to stub `--version` on every call.
 
@@ -104,15 +104,15 @@ func New(cfg backend.Config) (backend.Backend, error)
 
 Selects the right implementation based on `runtime.GOOS` plus an optional `cfg.Backend` override:
 
-| `cfg.Backend` | `runtime.GOOS` | Result |
-|---|---|---|
-| `""` or `"auto"` | `darwin` | `lima.NewBackend(…)` |
-| `""` or `"auto"` | `windows` | `wsl2.NewBackend(…)` |
-| `""` or `"auto"` | anything else | error: `no backend for <goos>` |
-| `"lima"` | any | `lima.NewBackend(…)` |
-| `"wsl2"` | any | `wsl2.NewBackend(…)` |
-| `"mock"` | any | `mock.New()` |
-| anything else | any | error: "unknown backend %q" |
+| `cfg.Backend`    | `runtime.GOOS` | Result                         |
+| ---------------- | -------------- | ------------------------------ |
+| `""` or `"auto"` | `darwin`       | `lima.NewBackend(…)`           |
+| `""` or `"auto"` | `windows`      | `wsl2.NewBackend(…)`           |
+| `""` or `"auto"` | anything else  | error: `no backend for <goos>` |
+| `"lima"`         | any            | `lima.NewBackend(…)`           |
+| `"wsl2"`         | any            | `wsl2.NewBackend(…)`           |
+| `"mock"`         | any            | `mock.New()`                   |
+| anything else    | any            | error: "unknown backend %q"    |
 
 The override is what makes per-OS code unit-testable. From a darwin dev host, you can drive the wsl2 backend through every code path (`runtimeGOOS` swapped, `requireWindowsFn` neutralised) and the mock's unit tests don't care what OS they're on.
 
@@ -145,5 +145,8 @@ A few things you might expect to be there but aren't, with reasoning:
 - **No bulk-port-forward API.** `ForwardPort` is one port at a time. `internal/portforward.Manager` is the higher-level abstraction that calls it in a loop. Keeping the backend dumb is the point.
 
 <Callout>
-The Backend interface is the most stable part of the codebase - nine specs depend on it. Changes here ripple everywhere. Adding fields to `VMSpec` or `ExecOpts` is fine (it's additive); changing method signatures is a real coordination problem. If you need a new capability, prefer adding a sibling method (`Backend.Snapshot`) over expanding `Exec`.
+  The Backend interface is the most stable part of the codebase - nine specs depend on it. Changes
+  here ripple everywhere. Adding fields to `VMSpec` or `ExecOpts` is fine (it's additive); changing
+  method signatures is a real coordination problem. If you need a new capability, prefer adding a
+  sibling method (`Backend.Snapshot`) over expanding `Exec`.
 </Callout>

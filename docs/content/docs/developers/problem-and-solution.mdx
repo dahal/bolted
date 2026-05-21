@@ -4,7 +4,7 @@ description: What Bolted exists to fix, the threat model it targets, and why a V
 icon: Target
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 ## The problem
 
@@ -16,12 +16,14 @@ When that code runs on your laptop, it has the same privileges you do:
 - SSH keys (`~/.ssh/id_*`).
 - Cloud credentials (`~/.aws/credentials`, `~/.config/gcloud/credentials.db`, GitHub tokens in `~/.config/gh/`).
 - Browser cookies, password manager databases, `.env` files with API tokens.
-- The ability to modify *other* repos and stage compromised commits that look like they came from you.
+- The ability to modify _other_ repos and stage compromised commits that look like they came from you.
 
 This isn't hypothetical. Compromised npm packages have been used to steal cryptocurrency wallets, exfiltrate AWS keys, plant supply-chain backdoors, and ransack git history. The xz incident showed how patient an attacker can be. The blast radius of "I ran `npm install` in the wrong directory" is enormous and growing.
 
 <Callout type="warn">
-The threat model here is **supply-chain compromise via dev tooling**, not "a sophisticated nation-state attacker who already has root on your laptop." We're trying to make a typical `npm install` survivable when one of the 1,500 transitive deps turns out to be hostile.
+  The threat model here is **supply-chain compromise via dev tooling**, not "a sophisticated
+  nation-state attacker who already has root on your laptop." We're trying to make a typical `npm
+  install` survivable when one of the 1,500 transitive deps turns out to be hostile.
 </Callout>
 
 ## What we want
@@ -32,9 +34,9 @@ Three properties, in priority order:
 2. **Active-use isolation.** When unlocked, the repos live inside a Linux VM. A host-side process - even one you ran yourself in another terminal - can't read or write those repo files directly.
 3. **Boring developer experience.** It has to feel close enough to native development that people actually use it. `bolt git clone …`, `bolt gh auth login`, `bolt gcloud …` all behave the way the host versions do. Editors keep working. `localhost:3000` is reachable from the host browser.
 
-What we explicitly do *not* claim:
+What we explicitly do _not_ claim:
 
-- We are not a sandbox per package. Once `cargo install evil-crate` runs inside Bolted, that crate is inside the trust boundary. Bolted isolates the *host* from Bolted, not packages from each other.
+- We are not a sandbox per package. Once `cargo install evil-crate` runs inside Bolted, that crate is inside the trust boundary. Bolted isolates the _host_ from Bolted, not packages from each other.
 - We are not a defense against a kernel-level attacker on the host. If they own the hypervisor, they own the VM.
 - We are not a substitute for code review, SBOMs, or dependency pinning. Those are upstream problems; Bolted is downstream containment.
 

@@ -3,10 +3,6 @@
   "private": true,
   "type": "module",
   "sideEffects": false,
-  "packageManager": "pnpm@11.1.0",
-  "engines": {
-    "pnpm": "11.x"
-  },
   "scripts": {
     "dev": "waku dev",
     "build": "waku build",
@@ -34,10 +30,14 @@
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "oxfmt": "^0.48.0",
+    "oxlint": "^1.63.0",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
-    "vite": "^8.0.10",
-    "oxlint": "^1.63.0",
-    "oxfmt": "^0.48.0"
-  }
+    "vite": "^8.0.10"
+  },
+  "engines": {
+    "pnpm": "11.x"
+  },
+  "packageManager": "pnpm@11.1.0"
 }

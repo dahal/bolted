@@ -4,7 +4,7 @@ description: The brainstorm → spec → implementation → docs workflow, how t
 icon: GitBranch
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 ## The four-layer workflow
 
@@ -17,10 +17,10 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 Each layer feeds the next:
 
-1. **`.claude/brainstorm/`** - design exploration. Tradeoffs surfaced, options compared, the "why" captured in prose. Lives outside the public repo (it's in `.claude/` which is gitignored except for the brainstorm subdirectory) because it's history, not current truth. Reading this is how you understand *why* a decision was made.
+1. **`.claude/brainstorm/`** - design exploration. Tradeoffs surfaced, options compared, the "why" captured in prose. Lives outside the public repo (it's in `.claude/` which is gitignored except for the brainstorm subdirectory) because it's history, not current truth. Reading this is how you understand _why_ a decision was made.
 2. **`specs/NN-title.md`** - the actionable plan. Status frontmatter (`ready` / `in-progress` / `done`), priority (P0 / P1 / P2), `depends-on` list. Each spec is self-contained with Goal / Scope / Non-goals / Acceptance criteria / References.
 3. **Implementation** - `internal/`, `cmd/`, `vm-image/`. The code that satisfies the spec. Test coverage at 100% (per-function) is the bar.
-4. **`docs/`** - user-facing reference. Updated *in the same change* as the feature ships, not later.
+4. **`docs/`** - user-facing reference. Updated _in the same change_ as the feature ships, not later.
 
 If you're adding something new, you write the brainstorm first (or read the existing one), then a spec, then implementation + tests + docs. If you're fixing a bug, you might skip brainstorm and write a small spec or jump straight to the fix - judgment call.
 
@@ -59,20 +59,20 @@ task lint           # go vet + oxlint
 
 `task --list` shows everything. The ones you'll use day to day:
 
-| Task | What it does |
-|---|---|
-| `task build` | Build everything (CLI + docs). |
-| `task cli:build` | Just the CLI binary into `./dist/`. Creates a `bolt` symlink next to it. |
-| `task cli:install` | `go install` into `$GOBIN` + create the `bolt` symlink. |
-| `task cli:test` | `go test ./...` |
-| `task cli:test:coverage` | Same with `-cover` summary. |
-| `task cli:lint` | `go vet ./...` |
-| `task docs:dev` | Start the docs site at `localhost:3000` with hot reload. |
-| `task docs:build` | Production docs build. |
-| `task docs:check` | TypeScript + MDX type check. |
-| `task vm:build` | Build the VM image (Lima qcow2 + WSL2 rootfs tar). Needs Docker + `qemu-img`. |
-| `task cli:build:all` | Cross-compile all three targets (darwin-arm64, darwin-amd64, windows-amd64). |
-| `task release` | Build all + compute SHA256SUMS + print next steps. Does NOT upload. |
+| Task                     | What it does                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `task build`             | Build everything (CLI + docs).                                                |
+| `task cli:build`         | Just the CLI binary into `./dist/`. Creates a `bolt` symlink next to it.      |
+| `task cli:install`       | `go install` into `$GOBIN` + create the `bolt` symlink.                       |
+| `task cli:test`          | `go test ./...`                                                               |
+| `task cli:test:coverage` | Same with `-cover` summary.                                                   |
+| `task cli:lint`          | `go vet ./...`                                                                |
+| `task docs:dev`          | Start the docs site at `localhost:3000` with hot reload.                      |
+| `task docs:build`        | Production docs build.                                                        |
+| `task docs:check`        | TypeScript + MDX type check.                                                  |
+| `task vm:build`          | Build the VM image (Lima qcow2 + WSL2 rootfs tar). Needs Docker + `qemu-img`. |
+| `task cli:build:all`     | Cross-compile all three targets (darwin-arm64, darwin-amd64, windows-amd64).  |
+| `task release`           | Build all + compute SHA256SUMS + print next steps. Does NOT upload.           |
 
 ## File ownership
 
@@ -96,7 +96,7 @@ In rough priority order:
 6. **Frontmatter flipped.** The spec's `status:` is set to `done` (or back to `ready` if you backed out).
 7. **`go vet` and `bun run types:check` pass.** CI enforces these.
 
-What reviewers will *not* block on:
+What reviewers will _not_ block on:
 
 - Code style fights that `gofmt` and `oxlint` don't already settle.
 - Coverage strictly below 100% if there's a documented reason (e.g., the `main()` function in `cmd/bolt`).
@@ -109,7 +109,7 @@ What reviewers will *not* block on:
 
    ```yaml
    ---
-   status: draft        # bump to `ready` when it's actionable
+   status: draft # bump to `ready` when it's actionable
    priority: P0 | P1 | P2
    depends-on: [NN, NN]
    ---
@@ -155,7 +155,8 @@ Tagged releases trigger `.github/workflows/release.yml`:
 For VM image releases (`vm-X.Y.Z` tags), it's currently manual: `task vm:build` then `task vm:publish` against the GHCR registry.
 
 <Callout>
-The release pipeline is intentionally manual at the final step. Drafts are auto-created; publishing is human-gated until we have a real release cadence and signing story.
+  The release pipeline is intentionally manual at the final step. Drafts are auto-created;
+  publishing is human-gated until we have a real release cadence and signing story.
 </Callout>
 
 ## What to read next

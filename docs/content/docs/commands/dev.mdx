@@ -13,8 +13,8 @@ bolt dev <repo> [--detach] [-- <cmd>...]
 
 ## Flags
 
-| Flag | Description |
-|---|---|
+| Flag             | Description                                   |
+| ---------------- | --------------------------------------------- |
 | `-d`, `--detach` | Start the container without attaching a shell |
 
 ## Examples
@@ -48,13 +48,13 @@ bolt dev api --detach
 
 ## Exit codes
 
-| Code | Meaning |
-|---|---|
-| `0` | Success |
-| `1` | Generic error (devcontainer up failed, exec failed) |
-| `2` | Bolted not initialised, VM not running, or volume locked |
-| `5` | Repo not found in Bolted |
-| _other_ | The exit code from the user's command or shell |
+| Code    | Meaning                                                  |
+| ------- | -------------------------------------------------------- |
+| `0`     | Success                                                  |
+| `1`     | Generic error (devcontainer up failed, exec failed)      |
+| `2`     | Bolted not initialised, VM not running, or volume locked |
+| `5`     | Repo not found in Bolted                                 |
+| _other_ | The exit code from the user's command or shell           |
 
 ## See also
 

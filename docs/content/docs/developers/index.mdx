@@ -4,22 +4,50 @@ description: Documentation for people building or contributing to Bolted, not ju
 icon: Code
 ---
 
-This section is for **people working on Bolted itself** - contributors, reviewers, future-you trying to remember why a decision was made six months ago. If you're here to *use* Bolted, the [quickstart](/docs/quickstart) is a better starting point.
+This section is for **people working on Bolted itself** - contributors, reviewers, future-you trying to remember why a decision was made six months ago. If you're here to _use_ Bolted, the [quickstart](/docs/quickstart) is a better starting point.
 
 The pages here cover:
 
-import { Cards, Card } from 'fumadocs-ui/components/card';
+import { Cards, Card } from "fumadocs-ui/components/card";
 
 <Cards>
-  <Card title="Problem & solution" href="/docs/developers/problem-and-solution" description="What Bolted exists to fix, the threat model it targets, and why a VM was the right shape." />
-  <Card title="Architecture" href="/docs/developers/architecture" description="The layered system: CLI → orchestration → backend → guest VM. Where each package lives and what it owns." />
-  <Card title="Patterns" href="/docs/developers/patterns" description="The codebase conventions - var indirection for testability, accept-interfaces / return-concrete, error sentinels, e2e gates." />
-  <Card title="Testing strategy" href="/docs/developers/testing" description="What gets unit tested vs. what needs real hardware, how the mocks work, and the BOLTED_E2E=1 contract." />
-  <Card title="Contributing" href="/docs/developers/contributing" description="The brainstorm → spec → implementation → docs workflow, how to build / test / release, what reviewers look for." />
-  <Card title="Security model" href="/docs/developers/security-model" description="Deeper threat model than the user-facing concepts page: what's in scope, what's out, and how each property is enforced." />
-  <Card title="Backend abstraction" href="/docs/developers/backend-abstraction" description="The per-OS Backend interface that makes the rest of the codebase OS-agnostic. Lima, WSL2, and the mock that powers all the tests." />
+  <Card
+    title="Problem & solution"
+    href="/docs/developers/problem-and-solution"
+    description="What Bolted exists to fix, the threat model it targets, and why a VM was the right shape."
+  />
+  <Card
+    title="Architecture"
+    href="/docs/developers/architecture"
+    description="The layered system: CLI → orchestration → backend → guest VM. Where each package lives and what it owns."
+  />
+  <Card
+    title="Patterns"
+    href="/docs/developers/patterns"
+    description="The codebase conventions - var indirection for testability, accept-interfaces / return-concrete, error sentinels, e2e gates."
+  />
+  <Card
+    title="Testing strategy"
+    href="/docs/developers/testing"
+    description="What gets unit tested vs. what needs real hardware, how the mocks work, and the BOLTED_E2E=1 contract."
+  />
+  <Card
+    title="Contributing"
+    href="/docs/developers/contributing"
+    description="The brainstorm → spec → implementation → docs workflow, how to build / test / release, what reviewers look for."
+  />
+  <Card
+    title="Security model"
+    href="/docs/developers/security-model"
+    description="Deeper threat model than the user-facing concepts page: what's in scope, what's out, and how each property is enforced."
+  />
+  <Card
+    title="Backend abstraction"
+    href="/docs/developers/backend-abstraction"
+    description="The per-OS Backend interface that makes the rest of the codebase OS-agnostic. Lima, WSL2, and the mock that powers all the tests."
+  />
 </Cards>
 
 ## A note on audience
 
-Code-level reference (function signatures, package APIs) lives in the Go source - `pkg.go.dev` will render it once the module is published. These pages cover the *prose* of the codebase: design decisions, conventions, and the rationale behind the package layout. They link out to the actual code where the implementation matters.
+Code-level reference (function signatures, package APIs) lives in the Go source - `pkg.go.dev` will render it once the module is published. These pages cover the _prose_ of the codebase: design decisions, conventions, and the rationale behind the package layout. They link out to the actual code where the implementation matters.

@@ -14,8 +14,8 @@ bolt stop --all
 
 ## Flags
 
-| Flag | Description |
-|---|---|
+| Flag    | Description                         |
+| ------- | ----------------------------------- |
 | `--all` | Stop every running Bolted container |
 
 `--all` and a repo argument are mutually exclusive.
@@ -44,12 +44,12 @@ If you ask to stop a repo with no running container, `bolt stop` prints "nothing
 
 ## Exit codes
 
-| Code | Meaning |
-|---|---|
-| `0` | Stopped (or nothing to stop) |
-| `1` | Generic error (bad arg combination, devcontainer down failed) |
-| `2` | Bolted not initialised, VM not running, or volume locked |
-| `5` | Repo not found (single-target form) |
+| Code | Meaning                                                       |
+| ---- | ------------------------------------------------------------- |
+| `0`  | Stopped (or nothing to stop)                                  |
+| `1`  | Generic error (bad arg combination, devcontainer down failed) |
+| `2`  | Bolted not initialised, VM not running, or volume locked      |
+| `5`  | Repo not found (single-target form)                           |
 
 ## See also
 

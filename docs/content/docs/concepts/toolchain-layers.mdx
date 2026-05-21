@@ -6,11 +6,11 @@ icon: Layers
 
 Tool availability is configured in three layers. Each layer answers a different question, and they compose: a process inside a dev container sees its container's pinned toolchain first, then the Bolted profile, then the VM base, on `$PATH`.
 
-| Layer | Scope | Examples | How configured |
-|---|---|---|---|
-| **1. VM base image** | Every Bolted install | `podman`, `cryptsetup`, `git`, `openssh`, `bash`, `curl` | Hardcoded in the Alpine image |
-| **2. Bolted profile** | One Bolted instance, all repos | `gh`, `gcloud`, `kubectl`, `terraform`, `jq`, custom shell, dotfiles | `~/.bolted/bolted.yaml`, applied by `bolt provision` |
-| **3. Per-repo devcontainer** | One repo's container | `node@20`, `ruby@3.3`, `rust@1.78`, project linters | `.devcontainer/devcontainer.json` in the repo |
+| Layer                        | Scope                          | Examples                                                             | How configured                                       |
+| ---------------------------- | ------------------------------ | -------------------------------------------------------------------- | ---------------------------------------------------- |
+| **1. VM base image**         | Every Bolted install           | `podman`, `cryptsetup`, `git`, `openssh`, `bash`, `curl`             | Hardcoded in the Alpine image                        |
+| **2. Bolted profile**        | One Bolted instance, all repos | `gh`, `gcloud`, `kubectl`, `terraform`, `jq`, custom shell, dotfiles | `~/.bolted/bolted.yaml`, applied by `bolt provision` |
+| **3. Per-repo devcontainer** | One repo's container           | `node@20`, `ruby@3.3`, `rust@1.78`, project linters                  | `.devcontainer/devcontainer.json` in the repo        |
 
 The questions each layer answers:
 
@@ -87,9 +87,9 @@ Standard `.devcontainer/devcontainer.json` in the repo. This is unmodified upstr
 {
   "image": "mcr.microsoft.com/devcontainers/base:bookworm",
   "features": {
-    "ghcr.io/devcontainers/features/node:1": { "version": "20" }
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
   },
-  "postCreateCommand": "npm install"
+  "postCreateCommand": "npm install",
 }
 ```
 

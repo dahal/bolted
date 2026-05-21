@@ -4,7 +4,7 @@ description: The layered system - CLI → orchestration → backend → guest VM
 icon: Layers
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 ## The four layers
 
@@ -42,17 +42,17 @@ The point of the abstraction isn't elegance - it's **testability**. Every layer 
 
 One file per command. The CLI is Cobra-based, with `argv[0]` detection so the same binary serves both `bolt` invocations with the right help text.
 
-| File | Owns |
-|---|---|
-| `cli.go` | `Execute` entrypoint, `isPassthrough` pre-router, exit-code translation |
-| `root.go` | Cobra root command, `--log-level` flag, slog wiring |
-| `reserved.go` | The single source of truth for reserved subcommand names |
-| `stubs.go` | Per-command `newXCmd()` registration; stubs for unimplemented names |
-| `lifecycle.go` | `bolt init`, `bolt unlock`, `bolt lock` orchestration + shared indirection vars |
-| `dev_cmd.go` | `bolt dev`; also hosts shared helpers (requireUnlockedBackend, requireRepo, containers.json reader/writer, trust gate) used by `exec`/`stop`/`ls`/`rm` |
-| `passthrough.go` | The `bolt <anything>` router (when first arg isn't reserved) |
-| `password.go` | `passwordPrompter` interface + TTY no-echo reader |
-| ...and one file per command (`status_cmd.go`, `provision_cmd.go`, etc.) | The command's body, flags, and tests |
+| File                                                                    | Owns                                                                                                                                                   |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cli.go`                                                                | `Execute` entrypoint, `isPassthrough` pre-router, exit-code translation                                                                                |
+| `root.go`                                                               | Cobra root command, `--log-level` flag, slog wiring                                                                                                    |
+| `reserved.go`                                                           | The single source of truth for reserved subcommand names                                                                                               |
+| `stubs.go`                                                              | Per-command `newXCmd()` registration; stubs for unimplemented names                                                                                    |
+| `lifecycle.go`                                                          | `bolt init`, `bolt unlock`, `bolt lock` orchestration + shared indirection vars                                                                        |
+| `dev_cmd.go`                                                            | `bolt dev`; also hosts shared helpers (requireUnlockedBackend, requireRepo, containers.json reader/writer, trust gate) used by `exec`/`stop`/`ls`/`rm` |
+| `passthrough.go`                                                        | The `bolt <anything>` router (when first arg isn't reserved)                                                                                           |
+| `password.go`                                                           | `passwordPrompter` interface + TTY no-echo reader                                                                                                      |
+| ...and one file per command (`status_cmd.go`, `provision_cmd.go`, etc.) | The command's body, flags, and tests                                                                                                                   |
 
 Two conventions worth knowing up front:
 
@@ -63,20 +63,20 @@ Two conventions worth knowing up front:
 
 Each one owns a vertical slice of behaviour. None talk to each other directly except through interfaces, and each one is mockable so commands that compose them can be unit-tested in isolation.
 
-| Package | Owns | Notes |
-|---|---|---|
-| `internal/config` | `config.yaml` schema, `BoltedDir()`, `Load`/`Save`, size/path validation | Atomic? `Save` is intentionally non-atomic (human-edited file). State files use `internal/state`. |
-| `internal/state` | Generic atomic JSON read/write for state files (containers.json, ports.json, etc.) | Tempfile + fsync + rename pattern. Deferred cleanup on failure. |
-| `internal/hostinfo` | Cross-platform host RAM/CPU detection + the auto-sizing formula | OS-specific files behind build tags; `golang.org/x/sys` for the syscalls. |
-| `internal/volume` | LUKS2 lifecycle (Create/Open/Mount/Unmount/Close, key-slot management) | Shells out to `cryptsetup` inside the VM via `Backend.Exec`. Passwords pass via stdin, never argv. |
-| `internal/devcontainer` | Wraps the `devcontainer` CLI; `Runner.Up`/`Down`/`Exec`/`Build` | Install-on-first-use of `@devcontainers/cli`, default-devcontainer.json fallback, container-name uniqueness check. |
-| `internal/devcontainertrust` | Hash + approve `.devcontainer/devcontainer.json` per repo | Raw-bytes hash so whitespace edits still re-prompt. Non-TTY without `--trust` refuses. |
-| `internal/portforward` | Detect bound ports inside containers, allocate host ports, persist mappings | `ss -tlnp` parser handles busybox + iproute2 variants; allocator falls back through `[requested+1, requested+100]`. |
-| `internal/boltednet` | The shared `bolted-net` podman network for inter-repo DNS | Ensure/Exists/Delete; integration into Up via `UpOpts.NetworkName`. |
-| `internal/provision` | `bolted.yaml` schema, `Apply` driver, drift `Check`, `FetchYAML` | Dotfiles installed via `Backend.Exec` with stdin piped; feature removal is `rm -rf` (devcontainer CLI has no uninstall). |
-| `internal/profiles` | Vendored starter `bolted.yaml` files (minimal/fullstack/data/mobile) | `go:embed`-backed; round-tripped through `provision.BoltedProfile` in tests so a malformed embedded yaml fails CI. |
-| `internal/keychain` | OS keychain wrapper for the Bolted password (opt-in) | macOS: `security` CLI. Windows: `cmdkey` (write-only - Get always errors). Other: noop. |
-| `internal/buildinfo` | Version/commit string for `bolt version` | ldflags injection with a runtime/debug fallback for `go run`. |
+| Package                      | Owns                                                                               | Notes                                                                                                                    |
+| ---------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `internal/config`            | `config.yaml` schema, `BoltedDir()`, `Load`/`Save`, size/path validation           | Atomic? `Save` is intentionally non-atomic (human-edited file). State files use `internal/state`.                        |
+| `internal/state`             | Generic atomic JSON read/write for state files (containers.json, ports.json, etc.) | Tempfile + fsync + rename pattern. Deferred cleanup on failure.                                                          |
+| `internal/hostinfo`          | Cross-platform host RAM/CPU detection + the auto-sizing formula                    | OS-specific files behind build tags; `golang.org/x/sys` for the syscalls.                                                |
+| `internal/volume`            | LUKS2 lifecycle (Create/Open/Mount/Unmount/Close, key-slot management)             | Shells out to `cryptsetup` inside the VM via `Backend.Exec`. Passwords pass via stdin, never argv.                       |
+| `internal/devcontainer`      | Wraps the `devcontainer` CLI; `Runner.Up`/`Down`/`Exec`/`Build`                    | Install-on-first-use of `@devcontainers/cli`, default-devcontainer.json fallback, container-name uniqueness check.       |
+| `internal/devcontainertrust` | Hash + approve `.devcontainer/devcontainer.json` per repo                          | Raw-bytes hash so whitespace edits still re-prompt. Non-TTY without `--trust` refuses.                                   |
+| `internal/portforward`       | Detect bound ports inside containers, allocate host ports, persist mappings        | `ss -tlnp` parser handles busybox + iproute2 variants; allocator falls back through `[requested+1, requested+100]`.      |
+| `internal/boltednet`         | The shared `bolted-net` podman network for inter-repo DNS                          | Ensure/Exists/Delete; integration into Up via `UpOpts.NetworkName`.                                                      |
+| `internal/provision`         | `bolted.yaml` schema, `Apply` driver, drift `Check`, `FetchYAML`                   | Dotfiles installed via `Backend.Exec` with stdin piped; feature removal is `rm -rf` (devcontainer CLI has no uninstall). |
+| `internal/profiles`          | Vendored starter `bolted.yaml` files (minimal/fullstack/data/mobile)               | `go:embed`-backed; round-tripped through `provision.BoltedProfile` in tests so a malformed embedded yaml fails CI.       |
+| `internal/keychain`          | OS keychain wrapper for the Bolted password (opt-in)                               | macOS: `security` CLI. Windows: `cmdkey` (write-only - Get always errors). Other: noop.                                  |
+| `internal/buildinfo`         | Version/commit string for `bolt version`                                           | ldflags injection with a runtime/debug fallback for `go run`.                                                            |
 
 ## Layer 3 - Backend abstraction (`internal/backend/`)
 
@@ -109,7 +109,7 @@ See [Backend abstraction](/docs/developers/backend-abstraction) for deeper cover
 
 Alpine 3.20 + exactly six tools: `podman`, `cryptsetup`, `git`, `openssh`, `bash`, `curl`. The image is built once (`task vm:build`) and published to GHCR; each backend imports it into its hypervisor on `EnsureVM`.
 
-The VM image deliberately contains *no* language toolchains. Those live in two later layers:
+The VM image deliberately contains _no_ language toolchains. Those live in two later layers:
 
 1. **`bolted.yaml`** - per-user Bolted profile (gh, gcloud, kubectl, ripgrep). Installed by `bolt provision` using the devcontainer features ecosystem.
 2. **`.devcontainer/devcontainer.json`** - per-repo project toolchain (node@20, ruby@3.3). Installed by the devcontainer CLI on `bolt dev`.

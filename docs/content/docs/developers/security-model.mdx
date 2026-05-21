@@ -4,7 +4,7 @@ description: Deeper threat model than the user-facing encryption page - what's i
 icon: ShieldCheck
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 The user-facing [Encryption](/docs/concepts/encryption) page covers the threat model in terms a non-developer can act on. This page is the **engineering** version: what guarantees we actually make, how each is enforced, and what attacks each property doesn't claim to defend.
 
@@ -24,25 +24,29 @@ Each property below explains the threat, how the design enforces it, and where t
 **How enforced.** The repo volume is a sparse file at `~/.bolted/volume.img` containing a LUKS2 header + ext4. When locked, the LUKS master key has been evicted from the kernel keyring (`cryptsetup close bolted`). The file on disk is fully encrypted with Argon2id-derived keys - no plaintext is recoverable without the passphrase.
 
 **Code path.**
+
 - `internal/volume/volume.go::Close` calls `cryptsetup close <name>` inside the VM via `Backend.Exec`. The kernel handles key eviction; we don't have to wipe anything in user space.
 - `Open` requires the passphrase via stdin (never argv) and only briefly holds it; the caller (`internal/cli/lifecycle.go::runUnlock`) `defer zero(password)`s the buffer immediately after `volume.Open` returns.
 
 **What this doesn't defend.**
+
 - Cold-boot attacks. If an attacker gets the laptop while unlocked and freezes the RAM modules, the key is in VM memory.
 - Backup compromise + offline brute force. Argon2id makes weak passphrases more expensive but doesn't make them safe. Pick a strong one.
 - Filesystem metadata (file sizes, count of writes) leaks. The LUKS layer encrypts blocks, not the fact that the file changed.
 
 ## 2. Active-use isolation
 
-**Threat.** A host process (another terminal you opened, an editor that auto-runs scripts, a malicious package that's *also* installed on the host) tries to read the now-decrypted repo while you're working.
+**Threat.** A host process (another terminal you opened, an editor that auto-runs scripts, a malicious package that's _also_ installed on the host) tries to read the now-decrypted repo while you're working.
 
-**How enforced.** The repo never lives on the host filesystem. `Volume.Mount` is `mount /dev/mapper/bolted /bolted/repos` *inside* the VM. The host sees only the LUKS image file (still bit-encrypted at the volume layer; the decrypted view exists only in guest kernel memory). The hypervisor boundary (Apple Virtualization on Mac, Hyper-V via WSL2 on Windows) is what enforces this - same boundary that keeps VMs isolated from their host in any commercial hypervisor.
+**How enforced.** The repo never lives on the host filesystem. `Volume.Mount` is `mount /dev/mapper/bolted /bolted/repos` _inside_ the VM. The host sees only the LUKS image file (still bit-encrypted at the volume layer; the decrypted view exists only in guest kernel memory). The hypervisor boundary (Apple Virtualization on Mac, Hyper-V via WSL2 on Windows) is what enforces this - same boundary that keeps VMs isolated from their host in any commercial hypervisor.
 
 **Code path.**
+
 - `internal/volume/volume.go::Mount` runs inside the VM via `Backend.Exec`. No host mount, no SMB/NFS share.
 - The Lima and WSL2 backends explicitly do not mount the Bolted volume image as a virtfs share - only as a block device file. So the host sees ciphertext at the block level.
 
 **What this doesn't defend.**
+
 - Host-side keylogger captures the LUKS passphrase. Out of scope; we can't defend against keyboard taps.
 - Memory snapshotting of the VM by a host-side debugger (gdb attached to the hypervisor process). On a multi-user system this would matter; on a single-user dev laptop with admin = user, the attacker already has everything.
 - Network traffic from inside the VM. Outbound network works normally; if your code makes an HTTP request to a malicious server, the request leaves the VM and lands wherever DNS points.
@@ -53,17 +57,19 @@ Each property below explains the threat, how the design enforces it, and where t
 
 **How enforced.** Before any `devcontainer up`, `bolt dev` (and `bolt exec`) compute SHA-256 of the raw bytes of `.devcontainer/devcontainer.json` and check it against an approval store at `~/.bolted/state/devcontainer-trust.json`. Unknown hash → the gate prints a human-readable summary (image, features, every lifecycle command, mounts, env) and prompts the user. Approval persists; the same repo's devcontainer runs silently next time.
 
-The summary is regenerated from a fresh parse, but the *hash* is over raw bytes - so a whitespace edit, comment change, or anything else that wouldn't render in the summary still re-triggers the prompt. The hash is paranoid by design.
+The summary is regenerated from a fresh parse, but the _hash_ is over raw bytes - so a whitespace edit, comment change, or anything else that wouldn't render in the summary still re-triggers the prompt. The hash is paranoid by design.
 
 **Code path.**
+
 - `internal/devcontainertrust/hash.go::HashConfig` reads the file via `Backend.Exec("cat …")`, returns the hex SHA-256 + the human summary.
 - `internal/devcontainertrust/trust.go::Store` is backed by `internal/state.WriteJSON` (atomic write).
 - `internal/cli/dev_cmd.go::realTrustGate` is the integration point. Returns nil when the repo has no `.devcontainer/devcontainer.json` (nothing to gate). Otherwise: check store → if not approved, prompt (or use `--trust` to auto-approve in CI).
 - `internal/devcontainertrust/prompt.go::Confirm` refuses non-TTY stdin with `ErrNoTTY` so unattended scripts can't silently accept anything they shouldn't.
 
 **What this doesn't defend.**
+
 - The features themselves. We hash the manifest, not the OCI image content of the features it pulls. If `github.com/devcontainers/features/some-feature@v2` is silently replaced upstream, we wouldn't know.
-- Code already running inside the container. Once a devcontainer is approved, `npm install` inside it can do what it wants. The trust gate is about *opening* the door; what happens inside is the same trust model as any other dev environment.
+- Code already running inside the container. Once a devcontainer is approved, `npm install` inside it can do what it wants. The trust gate is about _opening_ the door; what happens inside is the same trust model as any other dev environment.
 - Time-of-check / time-of-use. We hash and immediately invoke `devcontainer up`. A racy attacker who can modify the file between those two calls (which they could only do from inside the VM, so they're already inside the trust boundary) could bypass the hash check.
 
 ## 4. Credential containment
@@ -73,15 +79,17 @@ The summary is regenerated from a fresh parse, but the *hash* is over raw bytes 
 **How enforced.** Every credential storage path lands inside the encrypted volume:
 
 - **LUKS passphrase.** Lives only in the user's head (or, opt-in, the OS keychain). Never on disk in `~/.bolted/`.
-- **GitHub/Google/AWS credentials.** `gh auth login`, `gcloud auth login`, etc. are run via `bolt gh auth login`, etc. - the passthrough router executes them inside the VM, so credentials land in `~/.config/gh/` / `~/.config/gcloud/` *inside* the VM, on the LUKS volume.
+- **GitHub/Google/AWS credentials.** `gh auth login`, `gcloud auth login`, etc. are run via `bolt gh auth login`, etc. - the passthrough router executes them inside the VM, so credentials land in `~/.config/gh/` / `~/.config/gcloud/` _inside_ the VM, on the LUKS volume.
 - **SSH keys.** `ssh-keygen` via `bolt ssh-keygen` lands the keys in `~/.ssh/` inside the VM. The host's `~/.ssh/` is not exposed to the VM at all.
 - **OS keychain entry** (opt-in, `keychain: true` in `config.yaml`). Stored via the macOS `security` CLI or Windows `cmdkey`. The macOS version is gettable by other CLI tools running as the same user; the Windows version is write-only (`cmdkey` can store but not retrieve secrets) so the Bolted falls through to a prompt on unlock.
 
 **Code path.**
+
 - The passthrough router (`internal/cli/passthrough.go::passthroughRun`) sets `Cwd: /bolted/repos` and shells out via `Backend.Exec`, so every `bolt gh …` / `bolt gcloud …` / `bolt ssh-keygen …` runs in the VM by default.
 - `internal/keychain/keychain.go::Store` is opt-in only; off by default in `config.NewDefault()`.
 
 **What this doesn't defend.**
+
 - Tokens copied to the host explicitly via `bolt export`. The export command prompts for confirmation precisely because it's the documented escape hatch out of the containment.
 - The OS keychain being read by another process running as you (macOS prompts the first time but not always afterward; Windows `cmdkey` storage is readable by tools that ask). If you enable keychain caching, you've made a tradeoff for convenience.
 - Credentials inside a running dev container exfiltrated by code running in that container. Same as any dev environment - code you run can read its own environment.
@@ -123,12 +131,14 @@ Each box outward is a strictly looser trust environment. The point of the design
 
 Things this project does not try to do, listed once so they don't have to keep being argued about:
 
-- **Per-package sandboxing.** Once `cargo install evil-crate` runs inside Bolted, it's inside the trust boundary. Bolted contains the *host* from *its own contents*, not Bolted from itself.
+- **Per-package sandboxing.** Once `cargo install evil-crate` runs inside Bolted, it's inside the trust boundary. Bolted contains the _host_ from _its own contents_, not Bolted from itself.
 - **Code review of dependencies.** That's upstream (SBOMs, audit tools, lockfile review). Bolted just makes the radius of a compromised package smaller.
 - **A defense against a kernel-level attacker on the host.** If they own the hypervisor, they own the VM.
 - **Production runtime isolation.** This is a dev environment. Production isolation belongs in production tooling (k8s, AWS isolation primitives, etc.).
 - **Multi-user / shared Bolted instances.** One Bolted instance, one user. Sharing Bolted among multiple humans is out of scope.
 
 <Callout type="warn">
-If you discover a way to break one of the four properties above, that's a security bug - please report it privately rather than opening a public issue. The repo's GitHub Security tab is the right channel.
+  If you discover a way to break one of the four properties above, that's a security bug - please
+  report it privately rather than opening a public issue. The repo's GitHub Security tab is the
+  right channel.
 </Callout>

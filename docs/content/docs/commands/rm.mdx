@@ -3,7 +3,7 @@ title: bolt rm
 description: Remove a repo from Bolted - stops its container, deletes the directory.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 Stops `<repo>`'s dev container (if any), prompts for confirmation, then `rm -rf`s the repo's directory inside the encrypted volume.
 
@@ -19,8 +19,8 @@ bolt rm <repo> [--yes]
 
 ## Flags
 
-| Flag | Description |
-|---|---|
+| Flag          | Description                  |
+| ------------- | ---------------------------- |
 | `-y`, `--yes` | Skip the confirmation prompt |
 
 ## Examples
@@ -49,12 +49,12 @@ bolt rm api --yes
 
 ## Exit codes
 
-| Code | Meaning |
-|---|---|
-| `0` | Repo removed |
-| `1` | Generic error (user aborted, rm failed, container stop failed) |
-| `2` | Bolted not initialised, VM not running, or volume locked |
-| `5` | Repo not found |
+| Code | Meaning                                                        |
+| ---- | -------------------------------------------------------------- |
+| `0`  | Repo removed                                                   |
+| `1`  | Generic error (user aborted, rm failed, container stop failed) |
+| `2`  | Bolted not initialised, VM not running, or volume locked       |
+| `5`  | Repo not found                                                 |
 
 ## See also
 

@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import { Provider } from '@/components/provider';
-import '@/styles/globals.css';
+import type { ReactNode } from "react";
+import { Provider } from "@/components/provider";
+import "@/styles/globals.css";
 
 export default async function RootElement({ children }: { children: ReactNode }) {
   return (
@@ -15,6 +15,6 @@ export default async function RootElement({ children }: { children: ReactNode })
 
 export async function getConfig() {
   return {
-    render: 'static',
+    render: "static",
   } as const;
 }

@@ -4,7 +4,7 @@ description: The codebase conventions you'll see everywhere - var indirection, a
 icon: Wrench
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 Four patterns recur across nearly every package. Once you see them, the codebase reads predictably.
 
@@ -45,6 +45,7 @@ func TestFromDebug_NoBuildInfo(t *testing.T) {
 Why we don't use dependency injection through function arguments: it pollutes the surface area for the 99% of callers who just want the default. Package vars cost one line of wiring; everyone uses the production impl unless a test deliberately swaps it.
 
 Examples across the codebase:
+
 - `internal/buildinfo/buildinfo.go` - `readBuildInfo`
 - `internal/backend/factory/factory.go` - `runtimeGOOS`
 - `internal/cli/password.go` - `isTerminalFn`, `readPasswordFn`
@@ -58,7 +59,7 @@ Examples across the codebase:
 
 If your code calls a stdlib function whose **error branch can't fire in the test environment** (e.g. you'd need a read-only filesystem, a missing build, an actual TTY), add an indirection var. If you don't, that branch stays uncovered forever.
 
-### When *not* to
+### When _not_ to
 
 Pure functions don't need indirection - their inputs are already controllable. `parseSize("8GB")` doesn't need a `parseSizeFn` var; tests just call it with different strings.
 
@@ -66,7 +67,7 @@ Pure functions don't need indirection - their inputs are already controllable. `
 
 Go's standard advice, taken seriously here. Functions accept the smallest interface they need; constructors return the concrete type so callers don't lose access to type-specific behaviour.
 
-Where this shows up: the orchestration packages each *return* a concrete `*Volume`, `*Manager`, `*Backend`, `*Store`. Consumers that need to mock them define a local interface listing only the methods they call. From `internal/cli/lifecycle.go`:
+Where this shows up: the orchestration packages each _return_ a concrete `*Volume`, `*Manager`, `*Backend`, `*Store`. Consumers that need to mock them define a local interface listing only the methods they call. From `internal/cli/lifecycle.go`:
 
 ```go
 // volumeOps is the slice of *volume.Volume the lifecycle commands
@@ -82,7 +83,7 @@ type volumeOps interface {
 }
 ```
 
-`volume.New` still returns `*volume.Volume`. The `lifecycle` package defines its narrow `volumeOps` view locally because that's what `runUnlock` and `runLock` actually need. `passwd_cmd.go` defines a separate `passwdVolume` interface that includes `AddKeyslot`/`RemoveKeyslot` because that's what *it* needs.
+`volume.New` still returns `*volume.Volume`. The `lifecycle` package defines its narrow `volumeOps` view locally because that's what `runUnlock` and `runLock` actually need. `passwd_cmd.go` defines a separate `passwdVolume` interface that includes `AddKeyslot`/`RemoveKeyslot` because that's what _it_ needs.
 
 The benefit: the `volume` package's exported surface stays minimal, and the lifecycle package's tests can satisfy `volumeOps` with a fake without re-implementing `*volume.Volume`.
 
@@ -104,7 +105,7 @@ The exit-code machinery (`internal/cli/lifecycle.go::exitError`) follows the sam
 
 ## 4. Build-only-on-target with runtime fallback for testing
 
-Per-OS code (Lima only matters on Mac, WSL2 only on Windows) is split two ways depending on whether we need the package to *compile* everywhere:
+Per-OS code (Lima only matters on Mac, WSL2 only on Windows) is split two ways depending on whether we need the package to _compile_ everywhere:
 
 **Build tag, compile only on target.** Used for code that genuinely can't compile elsewhere - e.g. `internal/hostinfo/hostinfo_windows.go` uses `golang.org/x/sys/windows.MemoryStatusEx` which has no darwin equivalent:
 
@@ -135,8 +136,9 @@ func defaultRequireWindows() error {
 Production: refuses to start on macOS. Tests: swap `requireWindowsFn` to a no-op so the wsl2 unit tests can exercise the full code path on the dev host.
 
 When to use which:
+
 - **Build tag** if the implementation calls APIs that don't exist on other OSes.
-- **Runtime guard** if the implementation is pure logic that *would* work but you want to refuse to start production accidentally on the wrong OS.
+- **Runtime guard** if the implementation is pure logic that _would_ work but you want to refuse to start production accidentally on the wrong OS.
 
 ## 5. End-to-end gating with `BOLTED_E2E=1`
 
@@ -196,5 +198,8 @@ func Do(ctx context.Context, b backend.Backend, …) error {
 …with `internal/thing/thing_test.go` exercising every branch via the mock backend, and `internal/thing/thing_e2e_test.go` (if applicable) gated behind `BOLTED_E2E=1`.
 
 <Callout>
-If you find yourself writing a test that depends on the *real* OS behaviour (a real TTY, a real file with a real mode, the real `runtime.GOOS`), reach for an indirection var instead. Coverage gaps that look like "this branch can't be tested" almost always mean a missing seam, not a real limitation.
+  If you find yourself writing a test that depends on the *real* OS behaviour (a real TTY, a real
+  file with a real mode, the real `runtime.GOOS`), reach for an indirection var instead. Coverage
+  gaps that look like "this branch can't be tested" almost always mean a missing seam, not a real
+  limitation.
 </Callout>
