@@ -65,6 +65,7 @@ func (s *scriptedBackend) Exec(_ context.Context, cmd []string, opts backend.Exe
 }
 
 // Unused stubs so scriptedBackend satisfies backend.Backend.
+func (s *scriptedBackend) Preflight(context.Context) error                { return nil }
 func (s *scriptedBackend) EnsureVM(context.Context, backend.VMSpec) error { return nil }
 func (s *scriptedBackend) StartVM(context.Context) error                  { return nil }
 func (s *scriptedBackend) StopVM(context.Context) error                   { return nil }

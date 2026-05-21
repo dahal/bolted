@@ -21,6 +21,7 @@ type scriptedBackend struct {
 	gotCmd []string
 }
 
+func (s *scriptedBackend) Preflight(context.Context) error                { panic("not used") }
 func (s *scriptedBackend) EnsureVM(context.Context, backend.VMSpec) error { panic("not used") }
 func (s *scriptedBackend) StartVM(context.Context) error                  { panic("not used") }
 func (s *scriptedBackend) StopVM(context.Context) error                   { panic("not used") }

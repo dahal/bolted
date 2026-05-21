@@ -41,6 +41,7 @@ func TestBackendInterface_Shape(t *testing.T) {
 		"Exec",
 		"ForwardPort",
 		"IsRunning",
+		"Preflight",
 		"StartVM",
 		"StopVM",
 		"UnforwardPort",

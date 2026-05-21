@@ -18,6 +18,14 @@ import (
 // are synchronous; streaming/async exec is deliberately out of scope (see
 // spec 02 § Non-goals).
 type Backend interface {
+	// Preflight runs cheap host checks that must pass before any
+	// expensive or irreversible work happens — typically "is the
+	// per-OS VM tooling installed and reachable?". Callers invoke it
+	// before prompting for passwords or doing any side-effecting work,
+	// so a missing dependency surfaces before the user has paid any
+	// cost. Idempotent and side-effect-free.
+	Preflight(ctx context.Context) error
+
 	// EnsureVM creates the VM if it does not already exist using the given
 	// spec. Idempotent: calling it on an existing VM is a no-op (it does
 	// NOT reconfigure CPUs/memory/disk — re-creation is a separate flow).

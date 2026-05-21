@@ -149,7 +149,20 @@ func runInit(ctx context.Context, _ io.Writer, stderr io.Writer, opts initOption
 	cfg := config.NewDefault()
 	cfg.VM = vm
 
-	// 2. Read new password (twice with confirm if interactive; once from
+	// 2. Build the backend and run its preflight before any irreversible
+	// or sensitive work. The password prompt is the most security-
+	// sensitive input in the tool — we don't want to ask for it only to
+	// discover the backend can't run. The same backend instance is
+	// reused below for EnsureVM/StartVM.
+	b, err := newBackendFn(backend.Config{Backend: cfg.Backend})
+	if err != nil {
+		return fmt.Errorf("backend init: %w", err)
+	}
+	if err := b.Preflight(ctx); err != nil {
+		return fmt.Errorf("preflight: %w", err)
+	}
+
+	// 3. Read new password (twice with confirm if interactive; once from
 	// stdin if --password-stdin).
 	prompter := newPrompterFn()
 	password, err := readNewPassword(prompter, opts.passwordStdin)
@@ -181,7 +194,7 @@ func runInit(ctx context.Context, _ io.Writer, stderr io.Writer, opts initOption
 		fmt.Fprintln(stderr, "note: --from is accepted but not yet applied during init (see spec 15)")
 	}
 
-	// 3. Save the sized config.
+	// 4. Save the sized config.
 	if err := saveConfigFn(configPath(), cfg); err != nil {
 		return fmt.Errorf("save config: %w", err)
 	}
@@ -198,14 +211,10 @@ func runInit(ctx context.Context, _ io.Writer, stderr io.Writer, opts initOption
 		fmt.Fprintf(stderr, "wrote bolted.yaml from profile %q. Run `bolt provision` after `bolt unlock` to apply it.\n", opts.profile)
 	}
 
-	// 4. EnsureVM + StartVM via backend factory.
+	// 5. EnsureVM + StartVM on the already-preflighted backend.
 	spec, err := vmSpecFromConfig(cfg.VM)
 	if err != nil {
 		return err
-	}
-	b, err := newBackendFn(backend.Config{Backend: cfg.Backend})
-	if err != nil {
-		return fmt.Errorf("backend init: %w", err)
 	}
 	if err := b.EnsureVM(ctx, spec); err != nil {
 		return fmt.Errorf("ensure VM: %w", err)
@@ -214,7 +223,7 @@ func runInit(ctx context.Context, _ io.Writer, stderr io.Writer, opts initOption
 		return fmt.Errorf("start VM: %w", err)
 	}
 
-	// 5. Create the encrypted volume inside the VM. Reuse the already-
+	// 6. Create the encrypted volume inside the VM. Reuse the already-
 	// validated disk size from the spec (no second ParseSize round-trip).
 	v := newVolumeFn(b, volume.Options{Name: vmMapperName})
 	diskBytes := int64(spec.DiskGB) * 1024 * 1024 * 1024
@@ -222,7 +231,7 @@ func runInit(ctx context.Context, _ io.Writer, stderr io.Writer, opts initOption
 		return fmt.Errorf("create encrypted volume: %w", err)
 	}
 
-	// 6. Next steps.
+	// 7. Next steps.
 	fmt.Fprintln(stderr, "bolt initialised. Next: `bolt unlock` to mount the volume.")
 	return nil
 }

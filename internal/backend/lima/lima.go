@@ -91,6 +91,13 @@ func NewWithOptions(opts Options) *Backend {
 	return &Backend{name: name, dataDir: dataDir, runner: r}
 }
 
+// Preflight satisfies backend.Backend. Currently just delegates to
+// requireLima; future checks (QEMU on PATH, free disk for spec.Disk,
+// host virtualization) can be appended here and reported together.
+func (b *Backend) Preflight(ctx context.Context) error {
+	return b.requireLima(ctx)
+}
+
 // requireLima checks that limactl is available on PATH and returns a
 // clear actionable error if not. Only call this from EnsureVM / StartVM
 // so unit tests that don't need Lima can still exercise the rest of the

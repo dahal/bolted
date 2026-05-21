@@ -52,6 +52,7 @@ type Mock struct {
 	IsRunningResult bool
 
 	// Per-method canned errors. Leave nil to return success.
+	ErrPreflight     error
 	ErrEnsureVM      error
 	ErrStartVM       error
 	ErrStopVM        error
@@ -60,6 +61,12 @@ type Mock struct {
 	ErrForwardPort   error
 	ErrUnforwardPort error
 	ErrDeleteVM      error
+}
+
+// Preflight records the call and returns ErrPreflight.
+func (m *Mock) Preflight(ctx context.Context) error {
+	m.record(Call{Method: "Preflight", Ctx: ctx})
+	return m.ErrPreflight
 }
 
 // New returns a fresh mock ready to be plugged into code expecting a

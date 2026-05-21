@@ -257,9 +257,9 @@ func TestRunInit_HappyPath(t *testing.T) {
 	if !s.vol.created {
 		t.Error("Volume.Create was not called")
 	}
-	// EnsureVM + StartVM should have been called on the mock.
+	// Preflight runs first (before password), then EnsureVM + StartVM.
 	calls := s.mockBE.Methods()
-	if len(calls) < 2 || calls[0] != "EnsureVM" || calls[1] != "StartVM" {
+	if len(calls) < 3 || calls[0] != "Preflight" || calls[1] != "EnsureVM" || calls[2] != "StartVM" {
 		t.Errorf("unexpected backend call sequence: %v", calls)
 	}
 }
@@ -290,6 +290,34 @@ func TestRunInit_DetectFails(t *testing.T) {
 	err := runInit(context.Background(), io.Discard, io.Discard, initOptions{})
 	if !errors.Is(err, want) {
 		t.Errorf("expected wrapped detect error, got %v", err)
+	}
+}
+
+func TestRunInit_PreflightFailsBeforePrompt(t *testing.T) {
+	// Regression for bug 03: preflight must run before the password
+	// prompt so a missing backend dep can't waste a sensitive input.
+	preflightErr := errors.New("limactl not available")
+	promptCalled := false
+	s := &lifecycleStubs{
+		mockBE: &mock.Mock{ErrPreflight: preflightErr},
+		prompter: &fakePrompter{
+			promptTwice: func(string) ([]byte, error) {
+				promptCalled = true
+				return []byte("pw"), nil
+			},
+		},
+	}
+	s.install(t)
+	err := runInit(context.Background(), io.Discard, io.Discard, initOptions{})
+	if !errors.Is(err, preflightErr) {
+		t.Errorf("expected wrapped preflight error, got %v", err)
+	}
+	if promptCalled {
+		t.Error("password prompt was called despite preflight failure")
+	}
+	methods := s.mockBE.Methods()
+	if len(methods) != 1 || methods[0] != "Preflight" {
+		t.Errorf("expected only Preflight to be called, got %v", methods)
 	}
 }
 

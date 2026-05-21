@@ -133,6 +133,17 @@ func defaultRequireWindows() error {
 // to requireWindowsFn so tests can override.
 func requireWindows() error { return requireWindowsFn() }
 
+// Preflight satisfies backend.Backend. Checks the host is Windows and
+// wsl.exe is reachable. Returns the first failure; future checks (WSL
+// feature enabled, default distro registered, virtualization on) can
+// be appended and reported together.
+func (b *Backend) Preflight(ctx context.Context) error {
+	if err := requireWindows(); err != nil {
+		return err
+	}
+	return b.requireWSL(ctx)
+}
+
 // requireWSL probes for `wsl.exe` via `wsl --version`. A missing or
 // erroring binary becomes a user-facing message pointing at the install
 // command. Only called from EnsureVM and StartVM — the heavy operations
