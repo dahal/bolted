@@ -57,9 +57,25 @@ type limaConfig struct {
 	// any value other than reverse-sshfs/9p/virtiofs/wsl2, and with
 	// no mounts the field has nothing to apply to.
 	Mounts []any `yaml:"mounts"`
+	// Containerd is explicitly disabled because Alpine (our base
+	// image) ships without systemd, and Lima's default containerd
+	// startup requires systemd. Leaving the field unset makes Lima
+	// fatal-exit StartVM with "systemd must be available" even though
+	// the VM is actually running. We don't use Lima's containerd —
+	// Bolted runs containers via the host-mounted devcontainer flow.
+	Containerd limaContainerd `yaml:"containerd"`
 	// PortForwards mirrors loadForwards' contents so EnsureVM picks up
 	// previously requested forwards on every render.
 	PortForwards []limaPortForward `yaml:"portForwards,omitempty"`
+}
+
+// limaContainerd toggles Lima's bundled containerd. We pin both
+// fields to false; see limaConfig.Containerd for why.
+type limaContainerd struct {
+	// System enables the system-wide containerd (requires systemd).
+	System bool `yaml:"system"`
+	// User enables the user-mode containerd (requires systemd).
+	User bool `yaml:"user"`
 }
 
 // limaImage is one entry in limaConfig.Images.
@@ -117,10 +133,11 @@ func writeLimaYAML(path string, spec backend.VMSpec, forwards []portForward) err
 			{Location: alpineImageARM64, Arch: "aarch64"},
 			{Location: alpineImageAMD64, Arch: "x86_64"},
 		},
-		CPUs:   spec.CPUs,
-		Memory: fmt.Sprintf("%dMiB", spec.MemoryMB),
-		Disk:   fmt.Sprintf("%dGiB", spec.DiskGB),
-		Mounts: []any{},
+		CPUs:       spec.CPUs,
+		Memory:     fmt.Sprintf("%dMiB", spec.MemoryMB),
+		Disk:       fmt.Sprintf("%dGiB", spec.DiskGB),
+		Mounts:     []any{},
+		Containerd: limaContainerd{System: false, User: false},
 	}
 	for _, f := range forwards {
 		cfg.PortForwards = append(cfg.PortForwards, limaPortForward{
