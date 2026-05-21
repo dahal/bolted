@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os/exec"
 )
@@ -35,9 +36,13 @@ type exitError struct {
 	Cause error
 }
 
-// Error implements error. Includes the exit code so logs are useful
-// without unwrapping.
+// Error implements error. Appends the captured stderr so diagnostic
+// output from limactl reaches the user instead of being stripped down
+// to "exit status N".
 func (e *exitError) Error() string {
+	if trimmed := bytes.TrimSpace(e.Stderr); len(trimmed) > 0 {
+		return fmt.Sprintf("%s: %s", e.Cause.Error(), trimmed)
+	}
 	return e.Cause.Error()
 }
 
