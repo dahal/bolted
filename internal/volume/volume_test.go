@@ -111,20 +111,26 @@ func TestDevicePath(t *testing.T) {
 
 func TestCreateSequence(t *testing.T) {
 	be := &scriptedBackend{}
-	be.okN(5) // truncate, luksFormat, open, mkfs.ext4, close
+	be.okN(6) // mkdir, truncate, luksFormat, open, mkfs.ext4, close
 	v := New(be, Options{})
 
 	if err := v.Create(context.Background(), "/var/img.luks", 1<<30, pw("hunter2")); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 
-	want := []string{"truncate", "cryptsetup", "cryptsetup", "mkfs.ext4", "cryptsetup"}
+	want := []string{"mkdir", "truncate", "cryptsetup", "cryptsetup", "mkfs.ext4", "cryptsetup"}
 	if got := cmdsOf(be.calls); !reflect.DeepEqual(got, want) {
 		t.Fatalf("Create call order: got %v want %v", got, want)
 	}
 
+	// mkdir must create the parent dir of imagePath.
+	mkdir := be.calls[0]
+	if !reflect.DeepEqual(mkdir.cmd, []string{"mkdir", "-p", "/var"}) {
+		t.Fatalf("mkdir argv unexpected: %v", mkdir.cmd)
+	}
+
 	// luksFormat: argv must NOT contain the password; stdin MUST.
-	luksFormat := be.calls[1]
+	luksFormat := be.calls[2]
 	if !reflect.DeepEqual(luksFormat.cmd, []string{
 		"cryptsetup", "luksFormat",
 		"--type", "luks2",
@@ -145,19 +151,19 @@ func TestCreateSequence(t *testing.T) {
 	}
 
 	// open inside Create: also password on stdin.
-	open := be.calls[2]
+	open := be.calls[3]
 	if open.cmd[1] != "open" || string(open.stdin) != "hunter2" {
 		t.Fatalf("Create.open call wrong: cmd=%v stdin=%q", open.cmd, open.stdin)
 	}
 
 	// mkfs.ext4 must target the mapper path.
-	mkfs := be.calls[3]
+	mkfs := be.calls[4]
 	if !reflect.DeepEqual(mkfs.cmd, []string{"mkfs.ext4", "-q", "/dev/mapper/bolted"}) {
 		t.Fatalf("mkfs.ext4 argv unexpected: %v", mkfs.cmd)
 	}
 
 	// close: no password on stdin (it's a no-key operation).
-	closeCall := be.calls[4]
+	closeCall := be.calls[5]
 	if !reflect.DeepEqual(closeCall.cmd, []string{"cryptsetup", "close", "bolted"}) {
 		t.Fatalf("close argv unexpected: %v", closeCall.cmd)
 	}

@@ -211,6 +211,13 @@ func (b *Backend) Exec(ctx context.Context, cmd []string, opts backend.ExecOpts)
 	}
 	args = append(args, b.name, "--")
 
+	// Sudo: prepend the elevation tokens before the actual command so
+	// they end up inside the `sh -c` payload (running sudo against the
+	// outer `sh -c` would only elevate the shell, not its child).
+	if opts.Sudo {
+		cmd = append([]string{"sudo", "-n"}, cmd...)
+	}
+
 	// We always wrap in `sh -c` so env-prefix + cwd-prefix compose
 	// cleanly without needing to know whether the caller's cmd is a
 	// single binary or a shell pipeline. Cost is one extra fork per

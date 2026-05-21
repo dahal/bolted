@@ -73,7 +73,7 @@ type VMSpec struct {
 
 // ExecOpts controls how a command is executed inside the VM. The zero value
 // is valid: it runs in the VM's default cwd with no extra env, no stdin,
-// and no TTY.
+// no TTY, and as the VM's default user.
 type ExecOpts struct {
 	// Cwd is the working directory inside the VM. Empty means "use the
 	// backend's default".
@@ -85,6 +85,12 @@ type ExecOpts struct {
 	Stdin io.Reader
 	// TTY requests a pseudo-tty for the command (interactive shells).
 	TTY bool
+	// Sudo runs the command via passwordless sudo (`sudo -n`) inside
+	// the VM. Required for operations that touch root-only resources
+	// (/dev/mapper, /, /etc, mount/umount, cryptsetup, mkfs). The
+	// backend is responsible for ensuring the VM user has NOPASSWD
+	// sudo configured — Lima's default cloud-init does.
+	Sudo bool
 }
 
 // ExecResult is what Exec returns once the command has finished. Stdout and

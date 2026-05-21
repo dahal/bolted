@@ -41,6 +41,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 
@@ -102,14 +103,16 @@ func (v *Volume) Name() string { return v.name }
 // Create initialises a fresh encrypted volume at imagePath (a path
 // inside the VM filesystem):
 //
-//  1. truncate -s <sizeBytes> <imagePath>  — sparse backing file.
-//  2. cryptsetup luksFormat --type luks2 --pbkdf argon2id --key-file=-
+//  1. mkdir -p <dirname(imagePath)>  — first-run, /bolted does not
+//     exist in the guest yet and truncate won't create parents.
+//  2. truncate -s <sizeBytes> <imagePath>  — sparse backing file.
+//  3. cryptsetup luksFormat --type luks2 --pbkdf argon2id --key-file=-
 //     <imagePath>  — LUKS2 header + first keyslot, password on stdin.
-//  3. cryptsetup open --key-file=- <imagePath> <name>  — brief unlock
+//  4. cryptsetup open --key-file=- <imagePath> <name>  — brief unlock
 //     so we can put a filesystem on the mapper.
-//  4. mkfs.ext4 -q /dev/mapper/<name>  — ext4 filesystem inside the
+//  5. mkfs.ext4 -q /dev/mapper/<name>  — ext4 filesystem inside the
 //     LUKS container.
-//  5. cryptsetup close <name>  — drop the mapping; Open will re-create
+//  6. cryptsetup close <name>  — drop the mapping; Open will re-create
 //     it later.
 //
 // sizeBytes is the maximum sparse size — the backing file consumes
@@ -125,6 +128,14 @@ func (v *Volume) Create(ctx context.Context, imagePath string, sizeBytes int64, 
 	}
 	if len(password) == 0 {
 		return errors.New("volume: Create: password is empty")
+	}
+
+	if dir := path.Dir(imagePath); dir != "" && dir != "/" && dir != "." {
+		if err := v.exec(ctx, "mkdir", []string{
+			"mkdir", "-p", dir,
+		}, nil); err != nil {
+			return err
+		}
 	}
 
 	if err := v.exec(ctx, "truncate", []string{
@@ -219,7 +230,7 @@ func (v *Volume) Unmount(ctx context.Context, mountpoint string) error {
 	if mountpoint == "" {
 		return errors.New("volume: Unmount: mountpoint is empty")
 	}
-	res, err := v.backend.Exec(ctx, []string{"umount", mountpoint}, backend.ExecOpts{})
+	res, err := v.backend.Exec(ctx, []string{"umount", mountpoint}, backend.ExecOpts{Sudo: true})
 	if err == nil && res.ExitCode == 0 {
 		return nil
 	}
@@ -265,7 +276,7 @@ func (v *Volume) AddKeyslot(ctx context.Context, imagePath string, existing, new
 		"--key-file=-",
 		"--keyfile-size", strconv.Itoa(len(existing)),
 		imagePath,
-	}, backend.ExecOpts{Stdin: stdin})
+	}, backend.ExecOpts{Sudo: true, Stdin: stdin})
 	if err != nil || res.ExitCode != 0 {
 		if isBadPassword(res, err) {
 			return fmt.Errorf("cryptsetup luksAddKey %s: %w", imagePath, ErrBadPassword)
@@ -300,7 +311,7 @@ func (v *Volume) RemoveKeyslot(ctx context.Context, imagePath string, password [
 // either the backend reports a failure or the command exits non-zero.
 // opName is used to build a human-readable error message.
 func (v *Volume) exec(ctx context.Context, opName string, cmd []string, _ []byte) error {
-	res, err := v.backend.Exec(ctx, cmd, backend.ExecOpts{})
+	res, err := v.backend.Exec(ctx, cmd, backend.ExecOpts{Sudo: true})
 	if err != nil || res.ExitCode != 0 {
 		return wrapExec(opName, res, err)
 	}
@@ -326,7 +337,7 @@ func (v *Volume) execWithPassword(ctx context.Context, opName string, cmd []stri
 // long as the Exec call; we deliberately do NOT close over it from a
 // goroutine.
 func (v *Volume) runWithPassword(ctx context.Context, cmd []string, password []byte) (backend.ExecResult, error) {
-	return v.backend.Exec(ctx, cmd, backend.ExecOpts{Stdin: bytes.NewReader(password)})
+	return v.backend.Exec(ctx, cmd, backend.ExecOpts{Sudo: true, Stdin: bytes.NewReader(password)})
 }
 
 // buildPasswordStdin assembles the two-password stdin payload that
