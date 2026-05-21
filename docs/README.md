@@ -1,6 +1,6 @@
 # Bolted docs
 
-User-facing documentation site for [Bolted](../). Built with [Waku](https://waku.gg) + [Fumadocs](https://fumadocs.dev). Uses `bun` (see `Taskfile.yml`).
+User-facing documentation site for [Bolted](../). Built with [Waku](https://waku.gg) + [Fumadocs](https://fumadocs.dev). Uses `pnpm` (see `Taskfile.yml`).
 
 Run from the repo root:
 

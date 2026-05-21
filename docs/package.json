@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "sideEffects": false,
+  "packageManager": "pnpm@11.1.0",
+  "engines": {
+    "pnpm": "11.x"
+  },
   "scripts": {
     "dev": "waku dev",
     "build": "waku build",
@@ -13,25 +17,25 @@
   },
   "dependencies": {
     "@takumi-rs/image-response": "^1.1.2",
-    "fumadocs-core": "16.8.11",
-    "fumadocs-mdx": "15.0.5",
-    "fumadocs-ui": "16.8.11",
+    "fumadocs-core": "16.8.7",
+    "fumadocs-mdx": "14.3.2",
+    "fumadocs-ui": "16.8.7",
     "lucide-react": "^1.14.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-server-dom-webpack": "^19.2.6",
-    "tailwind-merge": "^3.6.0",
+    "tailwind-merge": "^3.5.0",
     "waku": "1.0.0-alpha.10"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.0",
+    "@tailwindcss/vite": "^4.2.4",
     "@types/mdx": "^2.0.13",
-    "@types/node": "^25.6.2",
+    "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "tailwindcss": "^4.3.0",
+    "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
-    "vite": "^8.0.12",
+    "vite": "^8.0.10",
     "oxlint": "^1.63.0"
   }
 }

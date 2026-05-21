@@ -82,37 +82,37 @@ tasks:
     desc: Install docs dependencies
     dir: docs
     cmds:
-      - bun install
+      - pnpm install
 
   docs:dev:
     desc: Start docs dev server
     dir: docs
     cmds:
-      - bun run dev
+      - pnpm run dev
 
   docs:build:
     desc: Build the docs site
     dir: docs
     cmds:
-      - bun run build
+      - pnpm run build
 
   docs:start:
     desc: Serve the built docs site
     dir: docs
     cmds:
-      - bun run start
+      - pnpm run start
 
   docs:lint:
     desc: Lint the docs project
     dir: docs
     cmds:
-      - bun run lint
+      - pnpm run lint
 
   docs:check:
     desc: Type-check the docs project
     dir: docs
     cmds:
-      - bun run types:check
+      - pnpm run types:check
 
   vm:build:
     desc: Build the Bolted VM image (Lima qcow2 + WSL2 rootfs tar) into vm-image/dist/

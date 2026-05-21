@@ -18,3 +18,4 @@ coverage.html
 
 # Local-only spec material
 /specs/
+bugs/*

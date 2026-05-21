@@ -7,7 +7,7 @@ User-facing documentation site. Living source of truth for what Bolted actually 
 - **Waku** - React-based framework, single binary build
 - **Fumadocs** - docs-specific MDX components, search, navigation
 - **Tailwind v4** - styling
-- **Bun** - package manager and runtime (see `Taskfile.yml`)
+- **pnpm** - package manager (see `Taskfile.yml`)
 
 ## Where things live
 
@@ -38,4 +38,4 @@ User-facing documentation site. Living source of truth for what Bolted actually 
 - Don't add aspirational features here - those belong in `specs/`.
 - Don't duplicate brainstorm content; link to it if needed.
 - Don't commit generated files (`.source/`, `src/pages.gen.ts`).
-- Don't run `npm`/`yarn`/`pnpm` - this project uses `bun` (via `Taskfile.yml`).
+- Don't run `npm`/`yarn`/`bun` - this project uses `pnpm` (via `Taskfile.yml`).
