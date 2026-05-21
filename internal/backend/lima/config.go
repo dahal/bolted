@@ -64,6 +64,14 @@ type limaConfig struct {
 	// the VM is actually running. We don't use Lima's containerd —
 	// Bolted runs containers via the host-mounted devcontainer flow.
 	Containerd limaContainerd `yaml:"containerd"`
+	// Provision is the cloud-init-style first-boot hook Lima exposes.
+	// Bolted uses it to install the six spec-07 tools (cryptsetup,
+	// podman, git, openssh, bash, curl) plus the three rootless-
+	// podman runtime extras (fuse-overlayfs, shadow-uidmap,
+	// slirp4netns) on top of the stock Alpine cloud image. This is a
+	// stop-gap until spec 07 ships a pre-baked Bolted VM image; see
+	// bugs/06-stock-alpine-missing-spec07-tools.md for context.
+	Provision []limaProvision `yaml:"provision"`
 	// PortForwards mirrors loadForwards' contents so EnsureVM picks up
 	// previously requested forwards on every render.
 	PortForwards []limaPortForward `yaml:"portForwards,omitempty"`
@@ -77,6 +85,27 @@ type limaContainerd struct {
 	// User enables the user-mode containerd (requires systemd).
 	User bool `yaml:"user"`
 }
+
+// limaProvision is one entry under lima.yaml's `provision:` list. We
+// only emit `mode: system` entries (root, once at instance creation).
+type limaProvision struct {
+	// Mode controls when/how the script runs. We use "system" — runs
+	// as root once during creation. Other Lima values (user/boot/
+	// dependency) aren't needed for the tool-install path.
+	Mode string `yaml:"mode"`
+	// Script is the shell payload executed by Lima at provision time.
+	Script string `yaml:"script"`
+}
+
+// bolteVMProvisionScript installs the six spec-07 tools the Bolted
+// CLI assumes are present inside the VM, plus the rootless-podman
+// runtime extras. Stays small and idempotent on purpose — apk add of
+// already-present packages is a no-op.
+const bolteVMProvisionScript = `#!/bin/sh
+set -eu
+apk add --no-cache cryptsetup podman git openssh bash curl
+apk add --no-cache fuse-overlayfs shadow-uidmap slirp4netns
+`
 
 // limaImage is one entry in limaConfig.Images.
 type limaImage struct {
@@ -138,6 +167,7 @@ func writeLimaYAML(path string, spec backend.VMSpec, forwards []portForward) err
 		Disk:       fmt.Sprintf("%dGiB", spec.DiskGB),
 		Mounts:     []any{},
 		Containerd: limaContainerd{System: false, User: false},
+		Provision:  []limaProvision{{Mode: "system", Script: bolteVMProvisionScript}},
 	}
 	for _, f := range forwards {
 		cfg.PortForwards = append(cfg.PortForwards, limaPortForward{

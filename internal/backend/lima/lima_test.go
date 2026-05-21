@@ -192,7 +192,7 @@ func TestEnsureVM_CreatesWhenMissing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected lima.yaml at %s: %v", yamlPath, err)
 	}
-	for _, want := range []string{"cpus: 4", "memory: 4096MiB", "disk: 50GiB", "mounts: []", "system: false", "user: false"} {
+	for _, want := range []string{"cpus: 4", "memory: 4096MiB", "disk: 50GiB", "mounts: []", "system: false", "user: false", "mode: system", "apk add --no-cache cryptsetup podman git openssh bash curl"} {
 		if !strings.Contains(string(data), want) {
 			t.Errorf("lima.yaml missing %q in:\n%s", want, data)
 		}
