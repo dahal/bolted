@@ -309,6 +309,22 @@ func runUnlock(ctx context.Context, _ io.Writer, stderr io.Writer, opts unlockOp
 		_ = v.Close(ctx, dev)
 		return fmt.Errorf("mount volume: %w", err)
 	}
+
+	// Chown the mountpoint to the VM's regular user. Without this,
+	// every passthrough write (bolt git clone, etc.) hits Permission
+	// denied — Mount runs as root and the ext4 root inode inherits
+	// root:root. id runs unescalated so it returns the regular user's
+	// uid/gid, then sudo elevates only the chown. The ownership is
+	// stored on the inode, so this persists across future unlocks; the
+	// re-run on every unlock is idempotent.
+	if res, err := b.Exec(ctx, []string{
+		"sh", "-c", `sudo chown "$(id -u):$(id -g)" "$0"`, vmMountpoint,
+	}, backend.ExecOpts{}); err != nil || res.ExitCode != 0 {
+		_ = v.Unmount(ctx, vmMountpoint)
+		_ = v.Close(ctx, dev)
+		return fmt.Errorf("chown mountpoint: %w (stderr: %s)", err, res.Stderr)
+	}
+
 	fmt.Fprintln(stderr, "Bolted unlocked.")
 	return nil
 }

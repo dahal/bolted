@@ -88,6 +88,15 @@ func TestExecute_HelpListsReservedSubcommands(t *testing.T) {
 }
 
 func TestExecute_PassthroughStubExitsNonZero(t *testing.T) {
+	// Isolate from any real ~/.bolted on the dev machine — passthrough
+	// checks configPath() before doing anything and bails with a
+	// spec-11 message when Bolted isn't initialised. Without this
+	// override, a developer who has run `bolt init` locally would
+	// see passthrough actually try to exec inside their VM.
+	orig := boltedDirFn
+	t.Cleanup(func() { boltedDirFn = orig })
+	boltedDirFn = func() string { return t.TempDir() }
+
 	_, errOut, code := captureExecute(t, "bolt", []string{"git", "--version"})
 	if code == 0 {
 		t.Fatalf("expected non-zero exit, got 0")
