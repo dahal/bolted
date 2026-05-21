@@ -1,0 +1,124 @@
+name: dep-audit
+
+on:
+  schedule:
+    - cron: '17 7 * * *' # daily ~07:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    name: osv audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Install osv-scanner
+        run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.2.4
+
+      - name: Scan dependencies
+        continue-on-error: true
+        run: |
+          osv-scanner scan source \
+            -L ./go.mod \
+            -L ./docs/pnpm-lock.yaml \
+            --format=json > osv-results.json
+
+      - name: Triage results and file/update issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('osv-results.json', 'utf8'));
+
+            const vulns = [];
+            for (const r of data.results ?? []) {
+              const path = r.source?.path ?? '<unknown>';
+              for (const p of r.packages ?? []) {
+                for (const v of p.vulnerabilities ?? []) {
+                  vulns.push({
+                    id: v.id,
+                    pkg: p.package.name,
+                    version: p.package.version,
+                    path,
+                    summary: v.summary ?? 'no summary',
+                  });
+                }
+              }
+            }
+
+            const label = 'osv-audit';
+            const title = 'OSV audit: vulnerable dependencies';
+            const { owner, repo } = context.repo;
+            const ts = new Date().toISOString().replace(/\..*/, 'Z');
+
+            const { data: openIssues } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: label, per_page: 1,
+            });
+            const existing = openIssues[0];
+
+            if (vulns.length === 0) {
+              if (existing) {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: existing.number,
+                  body: `Clean scan on \`${ts}\`.`,
+                });
+                await github.rest.issues.update({
+                  owner, repo, issue_number: existing.number, state: 'closed',
+                });
+                core.info(`Closed #${existing.number} (clean scan).`);
+              } else {
+                core.info('No vulnerabilities, no open audit issue. Nothing to do.');
+              }
+              return;
+            }
+
+            try {
+              await github.rest.issues.createLabel({
+                owner, repo, name: label,
+                description: 'Auto-filed by .github/workflows/dep-audit.yml',
+                color: 'B60205',
+              });
+            } catch (e) {
+              if (e.status !== 422) throw e; // 422 = already exists
+            }
+
+            const lines = vulns.map(v =>
+              `- **${v.id}** in \`${v.pkg}@${v.version}\` (\`${v.path}\`) — ${v.summary}`
+            );
+            const body = [
+              `OSV audit on \`${ts}\` flagged **${vulns.length}** ${vulns.length === 1 ? 'vulnerability' : 'vulnerabilities'} in dependency files.`,
+              '',
+              ...lines,
+              '',
+              'Reproduce locally:',
+              '',
+              '```',
+              'osv-scanner scan source -L go.mod -L docs/pnpm-lock.yaml',
+              '```',
+            ].join('\n');
+
+            if (existing) {
+              await github.rest.issues.update({
+                owner, repo, issue_number: existing.number, body,
+              });
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: existing.number,
+                body: `Re-scanned \`${ts}\`; body updated.`,
+              });
+              core.info(`Updated #${existing.number}.`);
+            } else {
+              const { data: created } = await github.rest.issues.create({
+                owner, repo, title, body, labels: [label],
+              });
+              core.info(`Created #${created.number}.`);
+            }
