@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
@@ -109,10 +110,13 @@ func Load(path string) (*Config, error) {
 
 // Save writes the Config to path as YAML, applying defaults first so partial
 // in-memory configs round-trip cleanly. Save validates before writing — an
-// invalid config never reaches disk. Writes are NOT atomic; callers that
-// need atomicity should compose with internal/state.WriteJSON-style helpers
-// (config.yaml is human-edited and infrequently written, so atomicity is not
-// worth the temp-file noise here).
+// invalid config never reaches disk. The parent directory is created (mode
+// 0o700) if it doesn't yet exist — config.yaml lives in ~/.bolted alongside
+// password-derived state, and first-run `bolt init` will hit a fresh machine
+// without that dir. Writes are NOT atomic; callers that need atomicity
+// should compose with internal/state.WriteJSON-style helpers (config.yaml is
+// human-edited and infrequently written, so atomicity is not worth the
+// temp-file noise here).
 func (c *Config) Save(path string) error {
 	applyDefaults(c)
 	if err := c.Validate(); err != nil {
@@ -121,6 +125,9 @@ func (c *Config) Save(path string) error {
 	data, err := yamlMarshal(c)
 	if err != nil {
 		return fmt.Errorf("config: marshal: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("config: ensure dir %s: %w", filepath.Dir(path), err)
 	}
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		return fmt.Errorf("config: write %s: %w", path, err)

@@ -170,13 +170,26 @@ func TestSave_ValidationFailureNoFileWritten(t *testing.T) {
 	}
 }
 
-func TestSave_WriteErrorReturned(t *testing.T) {
-	// Write into a non-existent directory under tempdir.
+func TestSave_CreatesMissingParentDir(t *testing.T) {
+	// First-run `bolt init` hits a fresh machine where ~/.bolted does
+	// not yet exist. Save must create the parent dir so callers don't
+	// have to MkdirAll separately.
 	dir := t.TempDir()
-	path := filepath.Join(dir, "nope", "config.yaml")
+	parent := filepath.Join(dir, "nope")
+	path := filepath.Join(parent, "config.yaml")
 	c := NewDefault()
-	if err := c.Save(path); err == nil {
-		t.Fatal("expected write error for missing dir")
+	if err := c.Save(path); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	info, err := os.Stat(parent)
+	if err != nil {
+		t.Fatalf("stat created dir: %v", err)
+	}
+	if !info.IsDir() {
+		t.Fatalf("expected %s to be a directory", parent)
+	}
+	if perm := info.Mode().Perm(); perm != 0o700 {
+		t.Errorf("dir perm = %o; want 0o700 (holds password-derived state)", perm)
 	}
 }
 

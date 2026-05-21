@@ -163,8 +163,8 @@ func runInit(ctx context.Context, _ io.Writer, stderr io.Writer, opts initOption
 	_ = opts.insecurePassword
 
 	// --profile: validate up-front so a typo fails before we spin up
-	// the VM. The actual write happens after saveConfig (which creates
-	// the BoltedDir on disk via os.WriteFile against configPath()).
+	// the VM. The actual write happens after saveConfig, which creates
+	// the BoltedDir as a side effect of writing config.yaml.
 	var profileYAML []byte
 	if opts.profile != "" {
 		data, err := profilesGetFn(opts.profile)
@@ -187,9 +187,9 @@ func runInit(ctx context.Context, _ io.Writer, stderr io.Writer, opts initOption
 	}
 
 	// Drop the starter bolted.yaml next to config.yaml. We do this
-	// AFTER saveConfig so the BoltedDir is guaranteed to exist
-	// (saveConfig writes to the same directory). Provisioning is a
-	// separate explicit step — `bolt provision` after `bolt unlock`.
+	// AFTER saveConfig so the BoltedDir is guaranteed to exist —
+	// Save creates ~/.bolted (0o700) on its first call. Provisioning
+	// is a separate explicit step — `bolt provision` after `bolt unlock`.
 	if profileYAML != nil {
 		yamlPath := filepath.Join(boltedDirFn(), "bolted.yaml")
 		if err := profileWriteFileFn(yamlPath, profileYAML, 0o600); err != nil {
