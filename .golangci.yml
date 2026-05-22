@@ -1,0 +1,34 @@
+# golangci-lint configuration — runs the standard core linters plus a
+# handful of security/correctness ones that match the project's posture.
+# Adjust freely; the goal is fast feedback on the lint hook, not maximal
+# coverage. Heavier checks (e.g. revive, lll) are deliberately omitted.
+
+run:
+  timeout: 5m
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck       # unchecked error returns
+    - govet          # standard vet (still useful alongside go vet)
+    - ineffassign    # ineffective assignments
+    - staticcheck    # broad correctness/style checks
+    - unused         # unused vars/funcs/types
+    - bodyclose      # http response bodies not closed
+    - gosec          # security scanner (path traversal, weak hashes, …)
+    - gofumpt        # formatter-as-linter (will also fire from the hook)
+
+linters-settings:
+  gosec:
+    # G115 (integer overflow conversion) fires too eagerly on size_t-like
+    # arithmetic. Re-enable once the codebase has a chance to add explicit
+    # bounds checks throughout.
+    excludes:
+      - G115
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec        # test files often have intentionally weak crypto
+        - errcheck     # tests intentionally ignore cleanup errors

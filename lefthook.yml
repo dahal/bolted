@@ -1,0 +1,40 @@
+# Hooks managed by lefthook — https://github.com/evilmartians/lefthook
+#
+# One-time setup after cloning:
+#   brew install lefthook gofumpt golangci-lint
+#   lefthook install
+#
+# Hooks then run on every `git commit` and `git push`. `lefthook run
+# pre-commit` manually replays the same set if you need a dry run.
+
+pre-commit:
+  parallel: true
+  commands:
+    gofumpt:
+      glob: "*.go"
+      run: gofumpt -l {staged_files}
+      fail_text: |
+        Above files need formatting. Run:
+            gofumpt -w {staged_files}
+    golangci-lint:
+      glob: "*.go"
+      run: golangci-lint run ./...
+    govet:
+      glob: "*.go"
+      run: go vet ./...
+    docs-format:
+      root: docs/
+      glob: "{src,content}/**/*.{ts,tsx,mdx,json,css}"
+      run: pnpm exec oxfmt --check {staged_files}
+      fail_text: |
+        Above files need formatting. Run:
+            pnpm --dir docs format
+    docs-lint:
+      root: docs/
+      glob: "src/**/*.{ts,tsx}"
+      run: pnpm exec oxlint {staged_files}
+
+commit-msg:
+  commands:
+    conventional:
+      run: scripts/check-commit-msg.sh {1}
