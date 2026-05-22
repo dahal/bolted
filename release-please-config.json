@@ -1,0 +1,28 @@
+{
+  "release-type": "go",
+  "include-v-in-tag": true,
+  "include-component-in-tag": false,
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": false,
+  "skip-github-release": true,
+  "draft": false,
+  "prerelease": false,
+  "packages": {
+    ".": {
+      "package-name": "bolted",
+      "changelog-path": "CHANGELOG.md",
+      "changelog-sections": [
+        { "type": "feat", "section": "Features" },
+        { "type": "fix", "section": "Bug Fixes" },
+        { "type": "perf", "section": "Performance" },
+        { "type": "refactor", "section": "Refactor" },
+        { "type": "docs", "section": "Documentation", "hidden": false },
+        { "type": "build", "section": "Build & Tooling", "hidden": false },
+        { "type": "ci", "section": "Continuous Integration", "hidden": true },
+        { "type": "chore", "section": "Chores", "hidden": true },
+        { "type": "test", "section": "Tests", "hidden": true },
+        { "type": "style", "section": "Style", "hidden": true }
+      ]
+    }
+  }
+}

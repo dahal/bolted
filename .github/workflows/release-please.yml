@@ -1,0 +1,29 @@
+name: release-please
+
+# release-please reads commits since the last release, opens a self-
+# updating "Release PR" that bumps the version constant + writes
+# CHANGELOG.md, and waits for a human to merge it. We deliberately
+# set skip-github-release: true in release-please-config.json so the
+# bot does NOT push the version tag itself — the maintainer cuts that
+# tag locally with `task release` (or equivalent) so it carries a real
+# SSH signature instead of the GitHub-Actions bot's signature. The
+# project-wide tag-push trigger (.github/workflows/release.yml) then
+# fires and builds the artifacts.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
