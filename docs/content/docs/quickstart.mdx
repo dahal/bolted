@@ -29,8 +29,9 @@ The installer drops Bolted and a `bolt` symlink into `$HOME/.local/bin`. Overrid
   ```
 
   `install.sh` prints this exact line when it detects the gap. Bolted
-  deliberately doesn't edit your shell config for you — see the
-  [Responsible use](../#responsible-use) note in the README.
+  deliberately doesn't auto-edit your shell config — a `curl … | sh`
+  that silently rewrites `~/.zshrc` is exactly the kind of pattern
+  Bolted is positioned against.
 </Callout>
 
 </Tab>
