@@ -2,6 +2,92 @@
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
 
+/* ─── Self-hosted fonts ────────────────────────────────────────────────────
+ * DM Sans (Variable) — body + headings
+ * DM Mono — code, the brand logotype, and tabular UI.
+ * Files live under docs/public/fonts/, served at /fonts/* by Waku.
+ */
+
+@font-face {
+  font-family: "DM Sans";
+  src: url("/fonts/DMSans-Variable.ttf") format("truetype-variations");
+  font-weight: 100 1000;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Sans";
+  src: url("/fonts/DMSans-Italic-Variable.ttf") format("truetype-variations");
+  font-weight: 100 1000;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Mono";
+  src: url("/fonts/DMMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Mono";
+  src: url("/fonts/DMMono-Medium.ttf") format("truetype");
+  font-weight: 500 700; /* DM Mono ships up to Medium; map "bold" to 500. */
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Theme overrides ──────────────────────────────────────────────────────
+ * Bolted's docs look ≡ security/encryption product:
+ *   - Sharp corners. Tailwind's default radius scale tops out at 1.5rem;
+ *     we cap everything except `rounded-full` at 3px so cards / inputs /
+ *     buttons feel deliberate instead of fluffy.
+ *   - Orange-red accent (oklch ~ #D4451F). It's the colour of urgency:
+ *     attention, action, "this is a security tool". Brighter in dark mode
+ *     so it pops against near-black.
+ *   - DM Sans / DM Mono everywhere — wired via Tailwind's `font-sans` and
+ *     `font-mono` utility variables.
+ */
+
+@theme {
+  --font-sans:
+    "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --font-mono:
+    "DM Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+
+  /* Cap radius at 3px (rounded-full stays uncapped — true circles). */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  --radius-xl: 3px;
+  --radius-2xl: 3px;
+  --radius-3xl: 3px;
+}
+
+/* Light theme — vivid orange that reads as "urgent / action" without
+   feeling like a browser error page. */
+:root {
+  --color-fd-primary: oklch(0.62 0.2 35);
+  --color-fd-primary-foreground: oklch(0.98 0 0);
+  --color-fd-ring: oklch(0.62 0.2 35);
+  --color-fd-accent: oklch(0.62 0.2 35 / 12%);
+  --color-fd-accent-foreground: oklch(0.62 0.2 35);
+}
+
+/* Dark theme — same hue, brighter L so it pops against near-black. */
+.dark {
+  --color-fd-primary: oklch(0.72 0.2 35);
+  --color-fd-primary-foreground: oklch(0.14 0 0);
+  --color-fd-ring: oklch(0.72 0.2 35);
+  --color-fd-accent: oklch(0.72 0.2 35 / 18%);
+  --color-fd-accent-foreground: oklch(0.85 0.1 35);
+}
+
+/* ─── Original UA fixes (pre-existing) ─────────────────────────────────── */
+
 html {
   scrollbar-gutter: stable;
 }
