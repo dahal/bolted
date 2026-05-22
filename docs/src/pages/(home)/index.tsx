@@ -275,10 +275,10 @@ function Hero() {
           <BoltIcon className="size-5 text-fd-primary" />
           <span className="font-mono text-xs uppercase tracking-widest">v0.1.0 - pre-release</span>
         </div>
-        <h1 className="font-mono text-5xl font-bold uppercase leading-[0.95] tracking-tight md:text-7xl">
-          Encrypted Linux,
+        <h1 className="font-mono text-4xl font-bold uppercase leading-[0.95] tracking-tight md:text-6xl">
+          Encrypted dev environment.
           <br />
-          <span className="text-fd-primary">bolted shut.</span>
+          Supply chain attacks <span className="text-fd-primary">stop here.</span>
         </h1>
         <p className="mt-8 max-w-2xl text-xl text-fd-muted-foreground">
           A password-locked dev environment for Mac and Windows. A backdoored package, a hijacked AI
