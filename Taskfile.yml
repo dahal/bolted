@@ -179,10 +179,10 @@ tasks:
         fi
         TAG="v${VERSION}"
         if git rev-parse "$TAG" >/dev/null 2>&1; then
-          echo "tag $TAG already exists locally — delete it first if you mean to re-cut" >&2
+          echo "tag $TAG already exists locally - delete it first if you mean to re-cut" >&2
           exit 1
         fi
         git tag -s "$TAG" -m "$TAG"
         git push origin "$TAG"
         echo
-        echo "pushed signed $TAG — release.yml will build artifacts shortly"
+        echo "pushed signed $TAG - release.yml will build artifacts shortly"

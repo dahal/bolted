@@ -2,7 +2,7 @@
 # Validate that the commit-message subject line matches Conventional Commits.
 # Invoked by lefthook's commit-msg hook with the path to .git/COMMIT_EDITMSG.
 # Kept as a shell script (no node/python runtime dependency) so the hook
-# stays in line with the project's lean-tooling posture — `commitlint`
+# stays in line with the project's lean-tooling posture - `commitlint`
 # would pull pnpm + node into every clone just for this one check.
 
 set -eu
@@ -16,7 +16,7 @@ case "$HEAD_LINE" in
     "Merge "*|"Revert "*|fixup!*|squash!*) exit 0 ;;
 esac
 
-# Conventional Commits 1.0.0 — type, optional (scope), optional !, ': ', subject.
+# Conventional Commits 1.0.0 - type, optional (scope), optional !, ': ', subject.
 PATTERN='^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\([a-z0-9_/-]+\))?!?: .+$'
 
 if echo "$HEAD_LINE" | grep -qE "$PATTERN"; then

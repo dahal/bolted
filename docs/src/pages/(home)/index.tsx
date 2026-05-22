@@ -40,7 +40,7 @@ const ATTACKS: ReadonlyArray<Attack> = [
     summary:
       "Worm-style payload on <code>@antv/G2</code>, <code>@antv/G6</code>, and <code>echarts-for-react</code>. <code>postinstall</code> scraped GitHub / AWS / Vault / npm / K8s / 1Password creds plus Actions runner memory.",
     contain:
-      "<code>npm install</code> runs inside Bolted. The scraper sees Bolted's empty env — not your gh tokens, <code>~/.aws/credentials</code>, or 1Password vault.",
+      "<code>npm install</code> runs inside Bolted. The scraper sees Bolted's empty env - not your gh tokens, <code>~/.aws/credentials</code>, or 1Password vault.",
   },
   {
     date: "May 19, 2026",
@@ -56,7 +56,7 @@ const ATTACKS: ReadonlyArray<Attack> = [
     summary:
       "Poisoned update to a verified VS Code extension silently collected <code>.env</code> files, SSH keys, and tokens from every workspace it opened.",
     contain:
-      "VS Code runs on your computer; your source and SSH keys don't. The extension reaches one opaque disk image — nothing else.",
+      "VS Code runs on your computer; your source and SSH keys don't. The extension reaches one opaque disk image - nothing else.",
   },
   {
     date: "May 11, 2026",
@@ -88,7 +88,7 @@ const ATTACKS: ReadonlyArray<Attack> = [
     summary:
       "A hijacked GitHub Action read CI/CD secrets straight from the runner process memory across every workflow that referenced it.",
     contain:
-      "Tokens you used inside Bolted stay in Bolted — not in shell history, not in your OS keychain, not in any third-party Action's runtime.",
+      "Tokens you used inside Bolted stay in Bolted - not in shell history, not in your OS keychain, not in any third-party Action's runtime.",
   },
 ];
 
@@ -96,7 +96,7 @@ const ATTACKS: ReadonlyArray<Attack> = [
 const PROTECTIONS: ReadonlyArray<{ title: string; body: string }> = [
   {
     title: "Bolted can't corrupt your computer",
-    body: "Malicious postinstall scripts, compromised npm/pip/cargo/brew packages, AI agents that 'just run a command' — the blast radius is exactly one container, with no path to your shell, SSH keys, OS keychain, or browser.",
+    body: "Malicious postinstall scripts, compromised npm/pip/cargo/brew packages, AI agents that 'just run a command' - the blast radius is exactly one container, with no path to your shell, SSH keys, OS keychain, or browser.",
   },
   {
     title: "Your computer can't corrupt Bolted",
@@ -108,13 +108,13 @@ const PROTECTIONS: ReadonlyArray<{ title: string; body: string }> = [
   },
 ];
 
-// Threats Bolted doesn't address — kept up front so the security promises
+// Threats Bolted doesn't address - kept up front so the security promises
 // stay credible.
 const NOT_PROTECTED: ReadonlyArray<string> = [
   "A keylogger already running on your computer can capture the password as you type it. Bolted encrypts data at rest; it does not heal a compromised endpoint.",
   "Cold-boot and DMA attacks against an unlocked machine. The LUKS key sits in kernel memory while Bolted is unlocked.",
   "An offline brute force against a backup of the encrypted volume + a weak password. Argon2id makes the work expensive, not impossible. Pick a strong passphrase.",
-  "Whatever runs inside one of your dev containers. A wallet drainer that lands in your container is still draining whatever it can reach from there — it just can't pivot to your real wallet or to other repos.",
+  "Whatever runs inside one of your dev containers. A wallet drainer that lands in your container is still draining whatever it can reach from there - it just can't pivot to your real wallet or to other repos.",
 ];
 
 const FAQ: ReadonlyArray<{ q: string; a: ReactNode }> = [
@@ -122,7 +122,7 @@ const FAQ: ReadonlyArray<{ q: string; a: ReactNode }> = [
     q: "Is this just a VM?",
     a: (
       <>
-        Yes — Lima on Mac, WSL2 on Windows. You don't see it; you see{" "}
+        Yes - Lima on Mac, WSL2 on Windows. You don't see it; you see{" "}
         <code className="font-mono text-sm">bolt</code>. The point isn't novel virtualization, it's
         a usable workflow that puts a real boundary between your editor and the code you don't yet
         trust.
@@ -133,7 +133,7 @@ const FAQ: ReadonlyArray<{ q: string; a: ReactNode }> = [
     q: "Will my builds be slower?",
     a: (
       <>
-        Disk is native — no virtiofs / 9p shenanigans — so cold builds run within
+        Disk is native - no virtiofs / 9p shenanigans - so cold builds run within
         single-digit-percent of running directly on macOS in our benchmarks. Cargo / pnpm / pip
         caches live inside Bolted so warm builds are faster than a fresh Docker container.
       </>
@@ -145,7 +145,7 @@ const FAQ: ReadonlyArray<{ q: string; a: ReactNode }> = [
       <>
         Docker runs containers; it doesn't make a decision about <em>where</em> the dev environment
         lives. Bolted is the encrypted Linux machine those containers run inside. You can absolutely
-        use Docker (or, as we do by default, podman) inside Bolted — that's the supported
+        use Docker (or, as we do by default, podman) inside Bolted - that's the supported
         devcontainer path.
       </>
     ),
@@ -165,7 +165,7 @@ const FAQ: ReadonlyArray<{ q: string; a: ReactNode }> = [
     a: (
       <>
         Apache 2.0. No telemetry, no analytics, no auth service. The code is small enough to audit
-        in an afternoon — that's deliberate.
+        in an afternoon - that's deliberate.
       </>
     ),
   },
@@ -173,7 +173,7 @@ const FAQ: ReadonlyArray<{ q: string; a: ReactNode }> = [
     q: "Linux support?",
     a: (
       <>
-        Post-MVP. The current targets are macOS (via Lima) and Windows (via WSL2) — the platforms
+        Post-MVP. The current targets are macOS (via Lima) and Windows (via WSL2) - the platforms
         where "a sealed Linux dev environment" is most useful. A native Linux backend isn't far off,
         it's just not the priority.
       </>
@@ -190,7 +190,7 @@ export default function Home() {
       <Section number="01" title="Attacks Bolted is built to contain">
         <p className="mt-6 max-w-3xl text-fd-muted-foreground">
           Three of these were disclosed within ten days of each other. The fourth is the canonical
-          CI/CD-secrets case. Click any card for the primary source — every "With Bolted" line below
+          CI/CD-secrets case. Click any card for the primary source - every "With Bolted" line below
           describes what the boundary actually isolates, not a hypothetical fix.
         </p>
         <div className="mt-10 grid gap-5 md:grid-cols-2">
@@ -217,7 +217,7 @@ export default function Home() {
           <Step n="1" desc="Install the CLI.">
             <CopyCommand command={INSTALL_CMD} />
           </Step>
-          <Step n="2" desc="Create the encrypted volume and VM (asks for a password — twice).">
+          <Step n="2" desc="Create the encrypted volume and VM (asks for a password - twice).">
             <CopyCommand command="bolt init" />
           </Step>
           <Step n="3" desc="Clone a repo into the volume.">
@@ -273,7 +273,7 @@ function Hero() {
       <div className="mx-auto max-w-5xl px-6 py-20 md:py-28">
         <div className="mb-10 flex items-center gap-3 text-fd-muted-foreground">
           <BoltIcon className="size-5 text-fd-primary" />
-          <span className="font-mono text-xs uppercase tracking-widest">v0.1.0 — pre-release</span>
+          <span className="font-mono text-xs uppercase tracking-widest">v0.1.0 - pre-release</span>
         </div>
         <h1 className="font-mono text-5xl font-bold uppercase leading-[0.95] tracking-tight md:text-7xl">
           Encrypted Linux,
@@ -387,7 +387,7 @@ function AttackCard({ date, name, reference, href, logo: Logo, stats, summary, c
         </time>
       </div>
 
-      {/* Stats strip — the headline numbers, evenly divided */}
+      {/* Stats strip - the headline numbers, evenly divided */}
       <dl className="mb-5 grid grid-cols-3 divide-x divide-fd-border border-y border-fd-border">
         {stats.map((s) => (
           <div key={s.label} className="px-3 py-3">

@@ -3,8 +3,8 @@
 @import "fumadocs-ui/css/preset.css";
 
 /* ─── Self-hosted fonts ────────────────────────────────────────────────────
- * DM Sans (Variable) — body + headings
- * DM Mono — code, the brand logotype, and tabular UI.
+ * DM Sans (Variable) - body + headings
+ * DM Mono - code, the brand logotype, and tabular UI.
  * Files live under docs/public/fonts/, served at /fonts/* by Waku.
  */
 
@@ -45,7 +45,7 @@
  *   - Orange-red accent (oklch ~ #D4451F). It's the colour of urgency:
  *     attention, action, "this is a security tool". Brighter in dark mode
  *     so it pops against near-black.
- *   - DM Sans / DM Mono everywhere — wired via Tailwind's `font-sans` and
+ *   - DM Sans / DM Mono everywhere - wired via Tailwind's `font-sans` and
  *     `font-mono` utility variables.
  */
 
@@ -57,7 +57,7 @@
     "DM Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
     monospace;
 
-  /* Cap radius at 3px (rounded-full stays uncapped — true circles). */
+  /* Cap radius at 3px (rounded-full stays uncapped - true circles). */
   --radius-xs: 1px;
   --radius-sm: 2px;
   --radius-md: 3px;
@@ -67,7 +67,7 @@
   --radius-3xl: 3px;
 }
 
-/* Light theme — vivid orange that reads as "urgent / action" without
+/* Light theme - vivid orange that reads as "urgent / action" without
    feeling like a browser error page. */
 :root {
   --color-fd-primary: oklch(0.62 0.2 35);
@@ -77,7 +77,7 @@
   --color-fd-accent-foreground: oklch(0.62 0.2 35);
 }
 
-/* Dark theme — same hue, brighter L so it pops against near-black. */
+/* Dark theme - same hue, brighter L so it pops against near-black. */
 .dark {
   --color-fd-primary: oklch(0.72 0.2 35);
   --color-fd-primary-foreground: oklch(0.14 0 0);

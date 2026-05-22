@@ -80,7 +80,7 @@ Read the full threat model at [bolted.sh/docs/concepts/encryption](https://bolte
 curl -fsSL https://raw.githubusercontent.com/dahal/bolted/main/install.sh | sh
 ```
 
-> The installer places `bolt` in `$HOME/.local/bin`. If that isn't on your `PATH`, add `export PATH="$HOME/.local/bin:$PATH"` to your shell rc — `install.sh` prints the exact line when it detects the gap. Override the location with `BOLTED_PREFIX=…` if you'd rather drop it somewhere already on `PATH`.
+> The installer places `bolt` in `$HOME/.local/bin`. If that isn't on your `PATH`, add `export PATH="$HOME/.local/bin:$PATH"` to your shell rc - `install.sh` prints the exact line when it detects the gap. Override the location with `BOLTED_PREFIX=…` if you'd rather drop it somewhere already on `PATH`.
 
 **Windows:** grab `bolted-<version>-windows-amd64.zip` from [Releases](https://github.com/dahal/bolted/releases), extract `bolt.exe` onto your `PATH`.
 

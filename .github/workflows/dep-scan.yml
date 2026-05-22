@@ -71,11 +71,11 @@ jobs:
             const sha = context.sha.slice(0, 7);
 
             const lines = vulns.length === 0
-              ? [`OSV scan ✓ — no vulnerabilities in changed dependency files (\`${sha}\`).`]
+              ? [`OSV scan ✓ - no vulnerabilities in changed dependency files (\`${sha}\`).`]
               : [
-                  `OSV scan ✗ — found **${vulns.length}** ${vulns.length === 1 ? 'vulnerability' : 'vulnerabilities'} in dependency files (\`${sha}\`).`,
+                  `OSV scan ✗ - found **${vulns.length}** ${vulns.length === 1 ? 'vulnerability' : 'vulnerabilities'} in dependency files (\`${sha}\`).`,
                   '',
-                  ...vulns.map(v => `- **${v.id}** in \`${v.pkg}@${v.version}\` (\`${v.path}\`) — ${v.summary}`),
+                  ...vulns.map(v => `- **${v.id}** in \`${v.pkg}@${v.version}\` (\`${v.path}\`) - ${v.summary}`),
                 ];
             const body = `${marker}\n\n${lines.join('\n')}`;
 

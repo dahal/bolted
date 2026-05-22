@@ -1,4 +1,4 @@
-# Hooks managed by lefthook — https://github.com/evilmartians/lefthook
+# Hooks managed by lefthook - https://github.com/evilmartians/lefthook
 #
 # One-time setup after cloning:
 #   brew install lefthook gofumpt golangci-lint

@@ -1,4 +1,4 @@
-# golangci-lint configuration — runs the standard core linters plus a
+# golangci-lint configuration - runs the standard core linters plus a
 # handful of security/correctness ones that match the project's posture.
 # Adjust freely; the goal is fast feedback on the lint hook, not maximal
 # coverage. Heavier checks (e.g. revive, lll) are deliberately omitted.

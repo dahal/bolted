@@ -2,7 +2,7 @@ import type { SVGProps } from "react";
 
 // BoltIcon is the inline version of public/icons/bolt.svg. Inline so the
 // `fill="currentColor"` honours whatever color the surrounding element
-// sets — that's how the accent flows into the nav-bar logo.
+// sets - that's how the accent flows into the nav-bar logo.
 export function BoltIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg

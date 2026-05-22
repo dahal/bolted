@@ -4,7 +4,7 @@ name: release-please
 # updating "Release PR" that bumps the version constant + writes
 # CHANGELOG.md, and waits for a human to merge it. We deliberately
 # set skip-github-release: true in release-please-config.json so the
-# bot does NOT push the version tag itself — the maintainer cuts that
+# bot does NOT push the version tag itself - the maintainer cuts that
 # tag locally with `task release` (or equivalent) so it carries a real
 # SSH signature instead of the GitHub-Actions bot's signature. The
 # project-wide tag-push trigger (.github/workflows/release.yml) then

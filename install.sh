@@ -67,7 +67,7 @@ resolve_version() {
     fi
     # Use GitHub's redirect from /releases/latest to discover the tag without
     # needing jq or an auth token. When the repo has no published releases
-    # GitHub does not 404 — it redirects to /releases (the listing page), so
+    # GitHub does not 404 - it redirects to /releases (the listing page), so
     # the trailing path segment becomes the literal string "releases". Catch
     # that case explicitly, and also reject anything that does not look
     # remotely like a version tag, so the bad value can't flow downstream.
@@ -79,10 +79,10 @@ resolve_version() {
     [ -n "$tag" ] || die "could not parse latest release tag"
     case "$tag" in
         releases)
-            die "no published releases at https://github.com/${REPO}/releases yet — set BOLTED_VERSION=vX.Y.Z to install a specific tag" ;;
+            die "no published releases at https://github.com/${REPO}/releases yet - set BOLTED_VERSION=vX.Y.Z to install a specific tag" ;;
         v[0-9]*|V[0-9]*|[0-9]*) ;;
         *)
-            die "resolved tag ${tag} does not look like a version — set BOLTED_VERSION=vX.Y.Z to override" ;;
+            die "resolved tag ${tag} does not look like a version - set BOLTED_VERSION=vX.Y.Z to override" ;;
     esac
     printf '%s' "$tag"
 }

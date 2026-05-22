@@ -93,7 +93,7 @@ jobs:
             }
 
             const lines = vulns.map(v =>
-              `- **${v.id}** in \`${v.pkg}@${v.version}\` (\`${v.path}\`) — ${v.summary}`
+              `- **${v.id}** in \`${v.pkg}@${v.version}\` (\`${v.path}\`) - ${v.summary}`
             );
             const body = [
               `OSV audit on \`${ts}\` flagged **${vulns.length}** ${vulns.length === 1 ? 'vulnerability' : 'vulnerabilities'} in dependency files.`,

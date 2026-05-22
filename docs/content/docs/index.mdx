@@ -4,33 +4,33 @@ description: A password-locked, encrypted Linux dev environment CLI for Mac and 
 icon: Terminal
 ---
 
-Bolted (alias `bolt`) gives you a password-locked, encrypted Linux dev environment that runs the same on Mac and Windows. Clone repos into it, run dev servers, hit them at `localhost:PORT` from your browser — and when locked, the contents are encrypted at rest.
+Bolted (alias `bolt`) gives you a password-locked, encrypted Linux dev environment that runs the same on Mac and Windows. Clone repos into it, run dev servers, hit them at `localhost:PORT` from your browser - and when locked, the contents are encrypted at rest.
 
 ## What it protects
 
 **Bolted can't corrupt your computer.**
 
-- A malicious `postinstall` script (npm), `build.rs` (cargo), or `setup.py` (pip) runs inside Bolted's dev container — with no path to your computer's shell, `~/.ssh` keys, OS keychain, browser cookies, or any other repo you have. The blast radius of a bad dependency is exactly one container.
+- A malicious `postinstall` script (npm), `build.rs` (cargo), or `setup.py` (pip) runs inside Bolted's dev container - with no path to your computer's shell, `~/.ssh` keys, OS keychain, browser cookies, or any other repo you have. The blast radius of a bad dependency is exactly one container.
 - A compromised `npm`, `pip`, `cargo`, `apt`, or Homebrew package installed inside Bolted stays inside Bolted. It can't pivot to other repos on the same instance, and it can't reach your computer at all.
 - The same boundary applies to AI coding agents and MCP servers: tell one to "run npm install in this repo" and the install happens inside Bolted, not on the machine where your SSH keys live.
 
 **Your computer can't corrupt Bolted.**
 
-- An already-compromised computer — a backdoored editor extension, a malicious CLI you `brew install`ed, malware sideloaded by a phishing email — can't read or modify the source, dependencies, or build outputs inside Bolted. There is no computer-side mount of the encrypted volume; your computer sees one opaque disk image and nothing more.
+- An already-compromised computer - a backdoored editor extension, a malicious CLI you `brew install`ed, malware sideloaded by a phishing email - can't read or modify the source, dependencies, or build outputs inside Bolted. There is no computer-side mount of the encrypted volume; your computer sees one opaque disk image and nothing more.
 - Telemetry, antivirus hooks, MDM probes, and screen recorders running on your computer can't snoop on the source you're working on, the secrets your dev containers hold, or the keystrokes you make while you work inside Bolted.
 
 **At rest.**
 
-- A lost or stolen laptop yields ciphertext. The encrypted volume is opened by an Argon2id-derived key from a password only you know. Lose the password, lose the data — by design.
+- A lost or stolen laptop yields ciphertext. The encrypted volume is opened by an Argon2id-derived key from a password only you know. Lose the password, lose the data - by design.
 - `bolt lock` evicts the key from kernel memory the moment you walk away. Until you `bolt unlock` again, even root on your computer just sees a ~50 GB blob of random-looking bytes.
 
 ## What you get
 
-- **One CLI, two OSes** — same UX on Mac (via Lima) and Windows (via WSL2).
-- **Encrypted at rest** — repo contents live in a LUKS2-encrypted volume. Locked means locked.
-- **Multi-repo by default** — many repos in one Bolted instance, many dev containers running concurrently, port collisions remapped automatically.
-- **Passthrough commands** — `bolt git clone …`, `bolt gh auth login`, `bolt gcloud …`, `bolt kubectl …` just work. No bespoke wrappers around every tool.
-- **Toolchain layering** — minimal Bolted base + a shareable `bolted.yaml` profile + standard per-repo `devcontainer.json` for project-pinned languages.
+- **One CLI, two OSes** - same UX on Mac (via Lima) and Windows (via WSL2).
+- **Encrypted at rest** - repo contents live in a LUKS2-encrypted volume. Locked means locked.
+- **Multi-repo by default** - many repos in one Bolted instance, many dev containers running concurrently, port collisions remapped automatically.
+- **Passthrough commands** - `bolt git clone …`, `bolt gh auth login`, `bolt gcloud …`, `bolt kubectl …` just work. No bespoke wrappers around every tool.
+- **Toolchain layering** - minimal Bolted base + a shareable `bolted.yaml` profile + standard per-repo `devcontainer.json` for project-pinned languages.
 
 ## Status
 
