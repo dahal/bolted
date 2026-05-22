@@ -90,6 +90,11 @@
 
 html {
   scrollbar-gutter: stable;
+  /* Bump the rem baseline from the browser default 16px → 17px so every
+     rem-based size (Tailwind's text-*, all of fumadocs' typography)
+     scales up by exactly one base unit. Easier-on-the-eyes default for
+     a docs site without growing each utility class case-by-case. */
+  font-size: 17px;
 }
 
 html > body[data-scroll-locked] {

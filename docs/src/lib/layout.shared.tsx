@@ -10,8 +10,8 @@ export function baseOptions(): BaseLayoutProps {
       // default. The icon picks up --color-fd-primary through the text-fd-primary
       // class on the wrapper.
       title: (
-        <span className="flex items-center gap-2 font-mono font-bold text-lg tracking-tight">
-          <BoltIcon className="size-6 text-fd-primary" />
+        <span className="flex items-center gap-2 font-mono font-bold text-xl tracking-tight uppercase">
+          <BoltIcon className="size-7 text-fd-primary" />
           {appName}
         </span>
       ),
