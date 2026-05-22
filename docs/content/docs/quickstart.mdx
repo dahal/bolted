@@ -20,11 +20,18 @@ curl -fsSL https://raw.githubusercontent.com/dahal/bolted/main/install.sh | sh
 
 The installer drops Bolted and a `bolt` symlink into `$HOME/.local/bin`. Override the location with `BOLTED_PREFIX=$HOME/bin` and pin a version with `BOLTED_VERSION=v0.1.2`.
 
-If `$HOME/.local/bin` isn't on your `PATH`, add it:
+<Callout type="info" title="Add ~/.local/bin to your PATH">
+  If `$HOME/.local/bin` isn't already on your shell's `PATH`, add this line to
+  your shell rc (`~/.zshrc` / `~/.bashrc`):
 
-```sh
-export PATH="$HOME/.local/bin:$PATH"
-```
+  ```sh
+  export PATH="$HOME/.local/bin:$PATH"
+  ```
+
+  `install.sh` prints this exact line when it detects the gap. Bolted
+  deliberately doesn't edit your shell config for you — see the
+  [Responsible use](../#responsible-use) note in the README.
+</Callout>
 
 </Tab>
 <Tab value="Windows">
