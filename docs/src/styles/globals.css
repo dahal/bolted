@@ -86,6 +86,20 @@
   --color-fd-accent-foreground: oklch(0.85 0.1 35);
 }
 
+/* ─── Force squared corners on fumadocs nav pills ──────────────────────────
+ * The home layout passes `rounded-full` to fumadocs' full search trigger
+ * and the dark/light theme switch. Our @theme overrides above only
+ * affect the radius tokens (`--radius-*`), not literal `rounded-full`.
+ * Target by data-attribute so we're not coupled to fumadocs' internal
+ * class names, and use !important so we win against the inline utility.
+ */
+
+button[data-search-full],
+button[data-theme-toggle],
+button[data-theme-toggle] > * {
+  border-radius: 3px !important;
+}
+
 /* ─── Original UA fixes (pre-existing) ─────────────────────────────────── */
 
 html {
