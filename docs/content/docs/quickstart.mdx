@@ -6,10 +6,15 @@ icon: Rocket
 
 import { Tabs, Tab } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
+import { Step, Steps } from "fumadocs-ui/components/steps";
 
 This page walks you from "nothing installed" to "running a dev container against a real repo" inside an encrypted Linux VM. Plan on about five minutes.
 
-## 1. Install the CLI
+<Steps>
+
+<Step>
+
+### Install the CLI
 
 <Tabs items={['macOS', 'Windows']}>
 <Tab value="macOS">
@@ -52,7 +57,11 @@ Confirm the install:
 bolt version
 ```
 
-## 2. Initialise Bolted
+</Step>
+
+<Step>
+
+### Initialise Bolted
 
 `bolt init` creates the encrypted volume, sizes a VM from your hardware, and writes `~/.bolted/config.yaml`. You'll be prompted to set a password - twice.
 
@@ -65,7 +74,11 @@ bolt init
   manager before you forget it.
 </Callout>
 
-## 3. Unlock the volume
+</Step>
+
+<Step>
+
+### Unlock the volume
 
 `bolt unlock` boots the VM (if it isn't already running), opens the LUKS volume, and mounts it at `/bolted/repos`. You'll be asked for the password you just set.
 
@@ -81,7 +94,11 @@ bolt lock
 
 `lock` unmounts the volume and evicts the key from the VM's kernel keyring. After this, the bytes on disk are ciphertext again. The VM keeps running by default so the next `unlock` is fast - pass `--stop-vm` to shut it down too.
 
-## 4. Clone a repo into the volume
+</Step>
+
+<Step>
+
+### Clone a repo into the volume
 
 Anything that isn't a reserved `bolt` subcommand is passed through to the VM. `git`, `gh`, `gcloud`, `kubectl` and friends just work:
 
@@ -97,7 +114,11 @@ List what you have:
 bolt ls
 ```
 
-## 5. Start a dev container
+</Step>
+
+<Step>
+
+### Start a dev container
 
 `bolt dev <repo>` brings up the repo's dev container (using its `.devcontainer/devcontainer.json` if present, or a sensible default) and drops you into a shell:
 
@@ -117,13 +138,21 @@ When you're finished, stop the container (the repo data is untouched):
 bolt stop Hello-World
 ```
 
-## 6. Lock up
+</Step>
+
+<Step>
+
+### Lock up
 
 ```sh
 bolt lock
 ```
 
 That's the loop: `unlock` → work → `lock`.
+
+</Step>
+
+</Steps>
 
 ## Where to go next
 
