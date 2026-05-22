@@ -164,6 +164,25 @@ tasks:
       - ls -1 dist/darwin-arm64/bolt dist/darwin-amd64/bolt dist/windows-amd64/bolt.exe dist/SHA256SUMS
       - echo ""
       - echo "Next steps:"
-      - echo "  1. Tag the release      git tag vX.Y.Z && git push origin vX.Y.Z"
+      - echo "  1. Tag the release      task release:tag"
       - echo "  2. The release workflow will rebuild + publish a draft GitHub Release"
       - echo "  3. Review the draft at https://github.com/dahal/bolted/releases and publish when ready"
+
+  release:tag:
+    desc: After merging the release-please PR, push a signed tag for the version in .release-please-manifest.json
+    cmds:
+      - |
+        VERSION=$(jq -r '."."' .release-please-manifest.json)
+        if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+          echo "no version in .release-please-manifest.json" >&2
+          exit 1
+        fi
+        TAG="v${VERSION}"
+        if git rev-parse "$TAG" >/dev/null 2>&1; then
+          echo "tag $TAG already exists locally — delete it first if you mean to re-cut" >&2
+          exit 1
+        fi
+        git tag -s "$TAG" -m "$TAG"
+        git push origin "$TAG"
+        echo
+        echo "pushed signed $TAG — release.yml will build artifacts shortly"
