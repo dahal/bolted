@@ -108,13 +108,42 @@ const PROTECTIONS: ReadonlyArray<{ title: string; body: string }> = [
   },
 ];
 
-// Threats Bolted doesn't address - kept up front so the security promises
-// stay credible.
-const NOT_PROTECTED: ReadonlyArray<string> = [
-  "A keylogger already running on your computer can capture the password as you type it. Bolted encrypts data at rest; it does not heal a compromised endpoint.",
-  "Cold-boot and DMA attacks against an unlocked machine. The LUKS key sits in kernel memory while Bolted is unlocked.",
-  "An offline brute force against a backup of the encrypted volume + a weak password. Argon2id makes the work expensive, not impossible. Pick a strong passphrase.",
-  "Whatever runs inside one of your dev containers. A wallet drainer that lands in your container is still draining whatever it can reach from there - it just can't pivot to your real wallet or to other repos.",
+// Threats Bolted doesn't address - the strongest, non-obvious limits a
+// sophisticated attacker would target if Bolted were in their way. Kept
+// near the top of the page so the security claims above stay credible.
+const NOT_PROTECTED: ReadonlyArray<{ title: string; body: string }> = [
+  {
+    title: "Host-level compromise",
+    body: "While Bolted is unlocked, the LUKS key sits in VM kernel memory. A process running as root on your computer - or a kernel-level attacker - can dump it. Bolted assumes the host is uncompromised; if your laptop is already rooted, encryption-at-rest only protects what's on disk while you're locked.",
+  },
+  {
+    title: "The password is the only secret",
+    body: "No recovery key, no escrow, no MFA - by design. A keylogger that observes you typing it once breaks everything Bolted defends. Argon2id raises the cost of offline brute force on a strong passphrase but doesn't replace the password as the entire trust root.",
+  },
+  {
+    title: "One trust domain per Bolted instance",
+    body: "Every repo you clone into the same Bolted shares one LUKS volume. Per-container isolation slows lateral movement between repos, but a container escape lands the attacker on /bolted/repos with access to all of them. Run separate Bolted instances for separate trust contexts - your day job and a wallet-draining curiosity don't belong together.",
+  },
+  {
+    title: "Credentials carry their own blast radius",
+    body: "A GitHub PAT, AWS access key, or kubeconfig you authenticate inside Bolted lives inside Bolted. Code that reaches that scope can use the credential - and the credential's reach is whatever it grants (other GitHub repos, production AWS, every cluster in your kubeconfig), not just what Bolted contains. Scope credentials narrowly.",
+  },
+  {
+    title: "Network egress is not filtered",
+    body: "Bolted draws its boundary around your filesystem and credentials, not around the network. A malicious package inside Bolted can phone home over outbound HTTPS just like a legitimate one. Detecting or blocking exfiltration is out of scope for this version.",
+  },
+  {
+    title: "Build outputs aren't tamper-checked",
+    body: "If a compromised dependency modifies your dist/, target/, or node_modules/.bin before you publish to npm or push a container image, Bolted doesn't catch it. The boundary is read-down (the attacker can't reach out of Bolted to your computer) - not write-up (your own outputs leaving Bolted are still trusted by whoever ships them).",
+  },
+  {
+    title: "AI coding agents inherit your access",
+    body: "Once you give Claude Code, Cursor, or an MCP server access to a Bolted, they can read every repo inside it, run any tool you've installed, and exfiltrate indirectly via their own model outputs. Bolted bounds where they CAN'T reach. It does not bound what they DO with the access you've granted.",
+  },
+  {
+    title: "Bolted's own supply chain",
+    body: "The bolt binary you install is signed and SHA256-checksummed, but the GitHub Actions runners that built it are infrastructure we don't audit. No SLSA Level 3 provenance yet. If our CI is compromised, a backdoored bolt would be on equal footing with the attacks this page lists - reproducible builds and stronger provenance are tracked separately.",
+  },
 ];
 
 const FAQ: ReadonlyArray<{ q: string; a: ReactNode }> = [
@@ -234,15 +263,25 @@ export default function Home() {
 
       <Section number="04" title="What Bolted does not protect">
         <p className="mt-6 max-w-3xl text-fd-muted-foreground">
-          Honesty matters in a security tool. The threats Bolted's design does not address:
+          A security tool's value lives in being honest about where its boundary stops. These are
+          the threats Bolted does not, on its own, defend against — read them before you decide what
+          to put inside.
         </p>
-        <ul className="mt-10 grid max-w-3xl gap-5">
-          {NOT_PROTECTED.map((s, i) => (
-            <li key={s} className="flex gap-4 border-l-2 border-fd-border pl-4">
+        <ul className="mt-10 grid max-w-3xl gap-8">
+          {NOT_PROTECTED.map((item, i) => (
+            <li
+              key={item.title}
+              className="grid grid-cols-[auto_1fr] gap-x-4 border-l-2 border-fd-border pl-4"
+            >
               <span className="pt-1 font-mono text-xs uppercase tracking-widest text-fd-muted-foreground">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="text-fd-foreground/90">{s}</span>
+              <div>
+                <h3 className="mb-2 font-mono text-sm font-bold uppercase tracking-wider text-fd-foreground">
+                  {item.title}
+                </h3>
+                <p className="leading-relaxed text-fd-foreground/85">{item.body}</p>
+              </div>
             </li>
           ))}
         </ul>
