@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 import { Link } from "waku";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { BoltIcon } from "@/components/bolt-icon";
+import { GitHubActionsIcon, NpmIcon, TanStackIcon, VSCodeIcon } from "@/components/brand-icons";
 import { CopyCommand } from "@/components/copy-command";
 
 // ─── Content ────────────────────────────────────────────────────────────────
@@ -10,56 +11,84 @@ const INSTALL_CMD =
   "curl -fsSL https://raw.githubusercontent.com/dahal/bolted/main/install.sh | sh";
 
 // Recent, public, named supply-chain attacks Bolted is built to contain.
-// Three of these are from the last two weeks; the fourth (tj-actions) is
-// the canonical CI/CD-secrets case. Each card links to the primary source
-// (target="_blank") and states what Bolted's boundary would have isolated.
-const ATTACKS: ReadonlyArray<{
+// Numbers-first: each card leads with the blast-radius stats, then a one-
+// sentence summary, then what Bolted's boundary actually isolates. Logos
+// from simpleicons.org (CC0), inlined under @/components/brand-icons.
+type Attack = {
   date: string;
   name: string;
   reference: string;
   href: string;
+  logo: ComponentType<SVGProps<SVGSVGElement>>;
+  stats: ReadonlyArray<{ value: string; label: string }>;
   summary: string;
   contain: string;
-}> = [
+};
+
+const ATTACKS: ReadonlyArray<Attack> = [
   {
     date: "May 20, 2026",
     name: "Mini Shai-Hulud / @antv",
-    reference: "Microsoft Security Response Center",
+    reference: "Microsoft Security",
     href: "https://www.microsoft.com/en-us/security/blog/2026/05/20/mini-shai-hulud-compromised-antv-npm-packages-enable-ci-cd-credential-theft/",
+    logo: NpmIcon,
+    stats: [
+      { value: "1M+", label: "weekly downloads" },
+      { value: "640", label: "packages pulled" },
+      { value: "61,274", label: "npm tokens revoked" },
+    ],
     summary:
-      "A worm-style payload published malicious versions of <code>@antv/G2</code>, <code>@antv/G6</code>, and <code>echarts-for-react</code> (combined >1M weekly downloads). The postinstall script scraped GitHub, AWS, HashiCorp Vault, npm, Kubernetes, and 1Password secrets — plus GitHub Actions runner memory — and exfiltrated them in two channels. GitHub removed 640 malicious packages and invalidated 61,274 npm tokens.",
+      "Worm-style payload on <code>@antv/G2</code>, <code>@antv/G6</code>, and <code>echarts-for-react</code>. <code>postinstall</code> scraped GitHub / AWS / Vault / npm / K8s / 1Password creds plus Actions runner memory.",
     contain:
-      "<code>npm install</code> runs inside Bolted. A postinstall scraper sees Bolted's environment — empty, by design — and not your computer's gh tokens, .npmrc, ~/.aws/credentials, 1Password vault, or anything else that lives on the host.",
+      "<code>npm install</code> runs inside Bolted. The scraper sees Bolted's empty env — not your gh tokens, <code>~/.aws/credentials</code>, or 1Password vault.",
   },
   {
     date: "May 19, 2026",
-    name: "Nx Console (VS Code extension)",
-    reference: "GitHub Security Blog",
+    name: "Nx Console (VS Code)",
+    reference: "GitHub Security",
     href: "https://github.blog/security/investigating-unauthorized-access-to-githubs-internal-repositories/",
+    logo: VSCodeIcon,
+    stats: [
+      { value: "2.2M", label: "extension installs" },
+      { value: "3,800", label: "internal repos breached" },
+      { value: "18 min", label: "to removal" },
+    ],
     summary:
-      "A poisoned update to the verified Nx Console extension (2.2M installs) silently collected credentials from every workspace it opened, breaching ~3,800 GitHub-internal repositories before being pulled 18 minutes later. The malicious build read .env files, SSH keys, and tokens straight out of the developer's workspace.",
+      "Poisoned update to a verified VS Code extension silently collected <code>.env</code> files, SSH keys, and tokens from every workspace it opened.",
     contain:
-      "Bolted doesn't fix VS Code itself — but the source it's snooping on, the .env files, the gh credentials, and the SSH agent it was after all live inside Bolted. To the malicious extension, the workspace is one opaque disk image and a network port.",
+      "VS Code runs on your computer; your source and SSH keys don't. The extension reaches one opaque disk image — nothing else.",
   },
   {
     date: "May 11, 2026",
     name: "TanStack npm compromise",
     reference: "TanStack postmortem",
     href: "https://tanstack.com/blog/npm-supply-chain-compromise-postmortem",
+    logo: TanStackIcon,
+    stats: [
+      { value: "42", label: "@tanstack/* packages" },
+      { value: "84", label: "malicious versions" },
+      { value: "~25 min", label: "to public IOC detection" },
+    ],
     summary:
-      "Attackers poisoned a GitHub Actions cache, extracted an OIDC token, and pushed 84 malicious versions across 42 <code>@tanstack/*</code> packages. The payload harvested AWS IMDS, GCP metadata, Kubernetes service-account tokens, Vault tokens, <code>~/.npmrc</code>, GitHub tokens, and SSH private keys from every install host. Detected by external researchers in ~25 minutes.",
+      "GitHub Actions cache poisoning → OIDC token theft → malicious publishes. Payload harvested AWS IMDS, GCP metadata, K8s tokens, Vault, SSH keys from install hosts.",
     contain:
-      "Every dependency you pulled — including the malicious <code>@tanstack/*</code> versions — would have installed inside Bolted. The harvester walks Bolted's filesystem looking for SSH keys, AWS credentials, and gh tokens that aren't there. Your real keys never come within reach.",
+      "The malicious deps install inside Bolted. The harvester walks a filesystem without your real SSH keys, cloud creds, or registry tokens.",
   },
   {
     date: "Mar 2025",
     name: "tj-actions/changed-files",
     reference: "CVE-2025-30066",
     href: "https://nvd.nist.gov/vuln/detail/CVE-2025-30066",
+    logo: GitHubActionsIcon,
+    stats: [
+      { value: "23,000+", label: "repos affected" },
+      { value: "1", label: "Action compromised" },
+      { value: "runner memory", label: "secrets exfil source" },
+    ],
     summary:
-      "A compromised GitHub Action used in 23,000+ repositories exfiltrated CI/CD secrets directly from the runner process memory. Affected every workflow that referenced the action during the compromise window.",
+      "A hijacked GitHub Action read CI/CD secrets straight from the runner process memory across every workflow that referenced it.",
     contain:
-      "Tokens you used inside Bolted — npm, gh, gcloud, kubectl, your registry creds — live in Bolted's environment, not your shell history, not your OS keychain. A hijacked third-party Action runs in the CI runner, not on your laptop, but the principle holds: the credentials you care about are not where the attacker is looking.",
+      "Tokens you used inside Bolted stay in Bolted — not in shell history, not in your OS keychain, not in any third-party Action's runtime.",
   },
 ];
 
@@ -324,55 +353,61 @@ function Section({
   );
 }
 
-function AttackCard({
-  date,
-  name,
-  reference,
-  href,
-  summary,
-  contain,
-}: {
-  date: string;
-  name: string;
-  reference: string;
-  href: string;
-  summary: string;
-  contain: string;
-}) {
+function AttackCard({ date, name, reference, href, logo: Logo, stats, summary, contain }: Attack) {
   return (
-    <article className="group border border-fd-border bg-fd-card/30 p-6 transition-colors hover:border-fd-primary/40">
-      <div className="mb-2 flex items-baseline justify-between gap-4">
-        <h3 className="font-mono text-lg font-bold">
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-baseline gap-1.5 hover:text-fd-primary"
-          >
-            {name}
-            <span
-              aria-hidden="true"
-              className="text-xs text-fd-muted-foreground group-hover:text-fd-primary"
-            >
-              ↗
-            </span>
-          </a>
-        </h3>
-        <time className="font-mono text-xs uppercase tracking-widest text-fd-muted-foreground">
+    <article className="group flex flex-col border border-fd-border bg-fd-card/30 p-6 transition-colors hover:border-fd-primary/40">
+      {/* Header row: logo + name link, with date on the right */}
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Logo className="size-7 shrink-0 text-fd-foreground/80" />
+          <div>
+            <h3 className="font-mono text-base font-bold leading-tight">
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-baseline gap-1.5 hover:text-fd-primary"
+              >
+                {name}
+                <span
+                  aria-hidden="true"
+                  className="text-xs text-fd-muted-foreground group-hover:text-fd-primary"
+                >
+                  ↗
+                </span>
+              </a>
+            </h3>
+            <p className="mt-0.5 font-mono text-[11px] uppercase tracking-widest text-fd-muted-foreground">
+              {reference}
+            </p>
+          </div>
+        </div>
+        <time className="shrink-0 font-mono text-xs uppercase tracking-widest text-fd-muted-foreground">
           {date}
         </time>
       </div>
-      <p className="mb-4 font-mono text-xs text-fd-muted-foreground">{reference}</p>
-      <p className="mb-5 text-fd-foreground/90" dangerouslySetInnerHTML={{ __html: summary }} />
-      <p className="border-l-2 border-fd-primary pl-3 text-sm text-fd-foreground/85">
+
+      {/* Stats strip — the headline numbers, evenly divided */}
+      <dl className="mb-5 grid grid-cols-3 divide-x divide-fd-border border-y border-fd-border">
+        {stats.map((s) => (
+          <div key={s.label} className="px-3 py-3">
+            <dt className="font-mono text-[11px] uppercase tracking-widest text-fd-muted-foreground">
+              {s.label}
+            </dt>
+            <dd className="mt-1 font-mono text-xl font-bold text-fd-foreground">{s.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <p
+        className="mb-5 text-sm text-fd-foreground/90"
+        dangerouslySetInnerHTML={{ __html: summary }}
+      />
+      <p className="mt-auto border-l-2 border-fd-primary pl-3 text-sm text-fd-foreground/85">
         <span className="mr-1 font-mono text-xs font-bold uppercase tracking-widest text-fd-primary">
           With Bolted
         </span>
-        <span
-          dangerouslySetInnerHTML={{
-            __html: contain,
-          }}
-        />
+        <span dangerouslySetInnerHTML={{ __html: contain }} />
       </p>
     </article>
   );
