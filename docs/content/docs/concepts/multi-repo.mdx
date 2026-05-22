@@ -53,9 +53,9 @@ This is the tricky part: two repos can't both own host `localhost:3000`.
 - **On the host, the first repo to claim a port wins.** The second repo that wants the same port is remapped to the next free port and the new mapping is reported back.
 
 <Callout type="info">
-  The dedicated `bolt ports` command for inspecting host-port mappings is tracked in [spec
-  14](https://github.com/dahal/bolted/blob/main/specs/14-port-forwarding.md) and not yet
-  implemented. For now, `bolt ls` shows which containers are running.
+  A dedicated `bolt ports` command for inspecting host-port mappings is on the
+  roadmap and not yet implemented. For now, `bolt ls` shows which containers
+  are running.
 </Callout>
 
 ## Resource sharing
@@ -86,6 +86,3 @@ These are managed by the CLI; you shouldn't edit them by hand.
 
 Not built in for MVP. The crude workaround: dedicate a "service repo" and run Postgres inside it as a normal dev container. Other repos reach it at `http://bolted-postgres:5432`. First-class `bolt service add` is post-MVP.
 
-## Want the design rationale?
-
-See [`.claude/brainstorm/02-architecture.md`](https://github.com/dahal/bolted/blob/main/.claude/brainstorm/02-architecture.md) - specifically the _Multi-repo runtime model_ and _Port forwarding_ sections.

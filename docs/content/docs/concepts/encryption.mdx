@@ -82,8 +82,5 @@ If any step fails before step 4, the old password still unlocks the volume - re-
 - **Keylogger on the host.** Captures the password as you type it. Out of scope.
 - **Cold-boot / DMA attacks.** The key lives in VM kernel memory while unlocked.
 - **Backup of `volume.img` + weak password.** Offline brute force is hard with Argon2id, but not impossible. Pick a strong passphrase.
-- **Malicious code running inside the VM.** A compromised dev container can read repos on the mounted volume. Per-repo trust mitigations are tracked in [spec 18](https://github.com/dahal/bolted/blob/main/specs/18-devcontainer-trust.md).
+- **Malicious code running inside the VM.** A compromised dev container can read repos on the mounted volume. Per-repo trust mitigations (`bolt trust`, devcontainer review prompts) raise the bar but don't make this go away — treat the volume as one trust domain.
 
-## Want the design rationale?
-
-See [`.claude/brainstorm/05-encryption.md`](https://github.com/dahal/bolted/blob/main/.claude/brainstorm/05-encryption.md) in the project repo for the full discussion, including rejected alternatives and open questions.
